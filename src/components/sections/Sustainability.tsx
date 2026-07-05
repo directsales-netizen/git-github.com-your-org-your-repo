@@ -1,0 +1,43 @@
+import Link from 'next/link';
+import { cn, grid, spacing } from '@/design';
+
+// Placeholder figures — replace with verified sustainability metrics before launch.
+const IMPACT_METRICS = [
+  { value: '48,000+', label: 'Devices given a second life' },
+  { value: '620,000 lbs', label: 'E-waste kept out of landfills' },
+  { value: '3.2M lbs', label: 'CO2 avoided vs. new manufacturing' },
+];
+
+export default function Sustainability() {
+  return (
+    <section className={cn(spacing.containerPadding, spacing.sectionMargin, 'mx-auto max-w-[1440px]')}>
+      <div className="grid grid-cols-1 gap-12 desktop:grid-cols-2 desktop:items-center">
+        <div>
+          <h2 className="text-h2 font-heading font-bold text-neutral-white">
+            Extending the life of technology responsibly.
+          </h2>
+          <p className="mt-4 text-body-lg font-body text-neutral-light-gray">
+            Every refurbished device we sell goes through professional testing and repair rather than
+            being discarded. That means fewer raw materials mined, less energy spent manufacturing new
+            devices, and less electronic waste headed to landfills.
+          </p>
+          <Link
+            href="/sustainability"
+            className="mt-6 inline-block text-body-md font-body font-semibold text-accent-primary hover:underline"
+          >
+            See our full refurbishment process &rarr;
+          </Link>
+        </div>
+
+        <div className={grid.container + ' grid-cols-1 tablet:grid-cols-3'}>
+          {IMPACT_METRICS.map((metric) => (
+            <div key={metric.label} className="rounded-lg border border-neutral-titanium/20 bg-bg-secondary p-6 text-center">
+              <p className="text-h3 font-heading font-bold text-accent-primary">{metric.value}</p>
+              <p className="mt-2 text-body-sm font-body text-neutral-silver">{metric.label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
