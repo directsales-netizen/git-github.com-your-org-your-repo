@@ -7,10 +7,10 @@ const FOOTER_COLUMNS = [
   {
     heading: 'Shop',
     links: [
-      { label: 'MacBooks', href: '/shop/macbooks' },
-      { label: 'iPhones', href: '/shop/iphones' },
-      { label: 'iPads', href: '/shop/ipads' },
-      { label: 'Clearance', href: '/shop/clearance' },
+      { label: 'MacBooks', href: '/shop?category=MacBooks' },
+      { label: 'iPhones', href: '/shop?category=iPhones' },
+      { label: 'iPads', href: '/shop?category=iPads' },
+      { label: 'Clearance', href: '/shop?discounted=true' },
     ],
   },
   {
