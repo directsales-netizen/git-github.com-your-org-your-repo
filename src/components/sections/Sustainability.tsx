@@ -1,12 +1,6 @@
 import Link from 'next/link';
+import { IMPACT_METRICS } from '@/lib/sustainability';
 import { cn, grid, spacing } from '@/design';
-
-// Placeholder figures — replace with verified sustainability metrics before launch.
-const IMPACT_METRICS = [
-  { value: '48,000+', label: 'Devices given a second life' },
-  { value: '620,000 lbs', label: 'E-waste kept out of landfills' },
-  { value: '3.2M lbs', label: 'CO2 avoided vs. new manufacturing' },
-];
 
 export default function Sustainability() {
   return (

@@ -17,7 +17,13 @@ interface FilterState {
   priceMax: string;
 }
 
-export default function Filters() {
+export default function Filters({
+  showCategoryFilter = true,
+  clearAllHref = '/shop',
+}: {
+  showCategoryFilter?: boolean;
+  clearAllHref?: string;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -82,7 +88,12 @@ export default function Filters() {
       </div>
 
       <form onSubmit={applyFilters} className="hidden tablet:block" aria-label="Filter products">
-        <FilterFields state={state} setState={setState} />
+        <FilterFields
+          state={state}
+          setState={setState}
+          showCategoryFilter={showCategoryFilter}
+          clearAllHref={clearAllHref}
+        />
       </form>
 
       {isDrawerOpen && (
@@ -114,7 +125,13 @@ export default function Filters() {
                 <X size={20} aria-hidden="true" />
               </button>
             </div>
-            <FilterFields state={state} setState={setState} firstFieldRef={firstFieldRef} />
+            <FilterFields
+              state={state}
+              setState={setState}
+              firstFieldRef={firstFieldRef}
+              showCategoryFilter={showCategoryFilter}
+              clearAllHref={clearAllHref}
+            />
           </form>
         </div>
       )}
@@ -126,10 +143,14 @@ function FilterFields({
   state,
   setState,
   firstFieldRef,
+  showCategoryFilter,
+  clearAllHref,
 }: {
   state: FilterState;
   setState: (updater: (state: FilterState) => FilterState) => void;
   firstFieldRef?: RefObject<HTMLInputElement | null>;
+  showCategoryFilter: boolean;
+  clearAllHref: string;
 }) {
   return (
     <>
@@ -148,26 +169,28 @@ function FilterFields({
         />
       </div>
 
-      <fieldset className="mt-6">
-        <legend className="text-label-sm font-body font-semibold text-neutral-white">Category</legend>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <FilterPill
-            name="category"
-            label="All"
-            checked={state.category === ''}
-            onSelect={() => setState((current) => ({ ...current, category: '' }))}
-          />
-          {PRODUCT_CATEGORIES.map((category) => (
+      {showCategoryFilter && (
+        <fieldset className="mt-6">
+          <legend className="text-label-sm font-body font-semibold text-neutral-white">Category</legend>
+          <div className="mt-3 flex flex-wrap gap-2">
             <FilterPill
-              key={category}
               name="category"
-              label={category}
-              checked={state.category === category}
-              onSelect={() => setState((current) => ({ ...current, category }))}
+              label="All"
+              checked={state.category === ''}
+              onSelect={() => setState((current) => ({ ...current, category: '' }))}
             />
-          ))}
-        </div>
-      </fieldset>
+            {PRODUCT_CATEGORIES.map((category) => (
+              <FilterPill
+                key={category}
+                name="category"
+                label={category}
+                checked={state.category === category}
+                onSelect={() => setState((current) => ({ ...current, category }))}
+              />
+            ))}
+          </div>
+        </fieldset>
+      )}
 
       <fieldset className="mt-6">
         <legend className="text-label-sm font-body font-semibold text-neutral-white">Condition Grade</legend>
@@ -230,7 +253,7 @@ function FilterFields({
           Apply Filters
         </button>
         <Link
-          href="/shop"
+          href={clearAllHref}
           className={cn(buttonVariants.ghost, 'inline-flex items-center justify-center px-6 py-2.5 text-body-sm')}
         >
           Clear All

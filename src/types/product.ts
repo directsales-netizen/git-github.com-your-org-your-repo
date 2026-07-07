@@ -24,6 +24,13 @@ export const PRODUCT_GRADE_LABELS: Record<ProductGrade, string> = {
   D: 'Grade D · Acceptable',
 };
 
+export const PRODUCT_GRADE_DESCRIPTIONS: Record<ProductGrade, string> = {
+  A: 'Minimal signs of use, 85%+ battery health, and a near-perfect screen. Full original accessories included.',
+  B: 'Light signs of use, such as small scratches or minor marks, with 75–85% battery health and an excellent screen.',
+  C: 'Visible signs of use with 65–74% battery health. Screen is in good condition and may show minor wear.',
+  D: 'Heavy signs of use with 50–64% battery health. Fully functional, with limited included accessories.',
+};
+
 export type ProductSortOption = 'price-asc' | 'price-desc' | 'newest' | 'popular';
 
 export interface Product {

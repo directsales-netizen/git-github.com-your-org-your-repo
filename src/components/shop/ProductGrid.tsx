@@ -3,7 +3,13 @@ import type { Product } from '@/types/product';
 import ProductCard from '@/components/shop/ProductCard';
 import { cn, grid } from '@/design';
 
-export default function ProductGrid({ products }: { products: Product[] }) {
+export default function ProductGrid({
+  products,
+  clearFiltersHref = '/shop',
+}: {
+  products: Product[];
+  clearFiltersHref?: string;
+}) {
   if (products.length === 0) {
     return (
       <div className="mt-16 flex flex-col items-center gap-3 text-center">
@@ -13,7 +19,7 @@ export default function ProductGrid({ products }: { products: Product[] }) {
         <p className="text-body-sm font-body text-neutral-silver">
           Try adjusting or clearing your filters to see more devices.
         </p>
-        <Link href="/shop" className="mt-2 text-body-md font-body font-semibold text-accent-primary hover:underline">
+        <Link href={clearFiltersHref} className="mt-2 text-body-md font-body font-semibold text-accent-primary hover:underline">
           Clear all filters
         </Link>
       </div>

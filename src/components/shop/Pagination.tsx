@@ -7,9 +7,10 @@ interface PaginationProps {
   page: number;
   totalPages: number;
   searchParams: SearchParamsInput;
+  basePath: string;
 }
 
-function buildHref(searchParams: SearchParamsInput, page: number) {
+function buildHref(searchParams: SearchParamsInput, page: number, basePath: string) {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(searchParams)) {
     if (key === 'page' || value === undefined) continue;
@@ -19,10 +20,10 @@ function buildHref(searchParams: SearchParamsInput, page: number) {
   if (page > 1) params.set('page', String(page));
 
   const query = params.toString();
-  return query ? `/shop?${query}` : '/shop';
+  return query ? `${basePath}?${query}` : basePath;
 }
 
-export default function Pagination({ page, totalPages, searchParams }: PaginationProps) {
+export default function Pagination({ page, totalPages, searchParams, basePath }: PaginationProps) {
   if (totalPages <= 1) return null;
 
   const pageNumbers = Array.from({ length: totalPages }, (_, index) => index + 1);
@@ -32,7 +33,7 @@ export default function Pagination({ page, totalPages, searchParams }: Paginatio
     <nav aria-label="Pagination" className="mt-12 flex flex-wrap items-center justify-center gap-2">
       {page > 1 ? (
         <Link
-          href={buildHref(searchParams, page - 1)}
+          href={buildHref(searchParams, page - 1, basePath)}
           className={cn(boundaryClasses, 'text-neutral-light-gray transition-colors duration-300 hover:text-accent-primary', accessibility.focusRing)}
         >
           Previous
@@ -56,7 +57,7 @@ export default function Pagination({ page, totalPages, searchParams }: Paginatio
           ) : (
             <Link
               key={number}
-              href={buildHref(searchParams, number)}
+              href={buildHref(searchParams, number, basePath)}
               className={cn(
                 'flex h-10 w-10 items-center justify-center rounded-md text-body-sm font-body text-neutral-light-gray transition-colors duration-300 hover:bg-bg-secondary hover:text-accent-primary',
                 accessibility.focusRing
@@ -70,7 +71,7 @@ export default function Pagination({ page, totalPages, searchParams }: Paginatio
 
       {page < totalPages ? (
         <Link
-          href={buildHref(searchParams, page + 1)}
+          href={buildHref(searchParams, page + 1, basePath)}
           className={cn(boundaryClasses, 'text-neutral-light-gray transition-colors duration-300 hover:text-accent-primary', accessibility.focusRing)}
         >
           Next
