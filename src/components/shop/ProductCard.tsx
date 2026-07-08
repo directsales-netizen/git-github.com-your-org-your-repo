@@ -1,8 +1,27 @@
-import type { Product } from '@/types/product';
+'use client';
+
+import { useState } from 'react';
+import type { PublicProduct } from '@/types/product';
 import { PRODUCT_GRADE_LABELS } from '@/types/product';
 import { buttonVariants, cardVariants, cn, spacing } from '@/design';
+import { useCart } from '@/lib/cart/CartContext';
 
-export default function ProductCard({ product }: { product: Product }) {
+const AVAILABILITY_LABEL: Record<PublicProduct['availability'], string> = {
+  'in-stock': 'In stock',
+  'low-stock': 'Low stock',
+  'out-of-stock': 'Out of stock',
+};
+
+export default function ProductCard({ product }: { product: PublicProduct }) {
+  const { addItem } = useCart();
+  const [added, setAdded] = useState(false);
+
+  function handleAdd() {
+    addItem(product);
+    setAdded(true);
+    setTimeout(() => setAdded(false), 1500);
+  }
+
   return (
     <div className={cn(cardVariants.base, 'flex flex-col')}>
       <div
@@ -10,9 +29,16 @@ export default function ProductCard({ product }: { product: Product }) {
         aria-label={product.imageAlt}
         className={cn('aspect-[4/3] w-full rounded-md bg-gradient-to-br', product.imageColor)}
       />
-      <span className="mt-4 w-fit rounded-full bg-bg-primary px-3 py-1 text-caption font-body text-accent-primary">
-        {PRODUCT_GRADE_LABELS[product.grade]}
-      </span>
+      <div className="mt-4 flex items-center justify-between gap-2">
+        <span className="w-fit rounded-full bg-bg-primary px-3 py-1 text-caption font-body text-accent-primary">
+          {PRODUCT_GRADE_LABELS[product.grade]}
+        </span>
+        {product.availability !== 'in-stock' && (
+          <span className={cn('text-caption font-body font-medium', product.availability === 'out-of-stock' ? 'text-error' : 'text-warning')}>
+            {AVAILABILITY_LABEL[product.availability]}
+          </span>
+        )}
+      </div>
       <h3 className="mt-3 text-h6 font-heading font-semibold text-neutral-white">{product.title}</h3>
       <p className="mt-1 text-body-sm font-body text-neutral-silver">{product.category}</p>
 
@@ -25,9 +51,11 @@ export default function ProductCard({ product }: { product: Product }) {
 
       <button
         type="button"
+        disabled={product.availability === 'out-of-stock'}
+        onClick={handleAdd}
         className={cn(buttonVariants.primary, spacing.buttonPadding, 'mt-4 text-body-sm')}
       >
-        Quick Add
+        {product.availability === 'out-of-stock' ? 'Out of stock' : added ? 'Added to cart' : 'Quick Add'}
       </button>
     </div>
   );

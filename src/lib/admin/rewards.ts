@@ -42,3 +42,36 @@ export async function adjustMemberPoints(id: string, delta: number): Promise<Loy
   member.tier = resolveTier(member.points, rulesBox.current.tierThresholds);
   return member;
 }
+
+const nextMemberIdBox = globalBox('nextLoyaltyMemberId', () => 100);
+
+export async function getLoyaltyMemberByEmail(email: string): Promise<LoyaltyMember | null> {
+  const normalized = email.trim().toLowerCase();
+  return MEMBERS.find((m) => m.email.toLowerCase() === normalized) ?? null;
+}
+
+export async function findOrCreateLoyaltyMember(email: string, name: string): Promise<LoyaltyMember> {
+  const normalized = email.trim().toLowerCase();
+  const existing = MEMBERS.find((m) => m.email.toLowerCase() === normalized);
+  if (existing) return existing;
+
+  const member: LoyaltyMember = {
+    id: `lm-${nextMemberIdBox.current++}`,
+    name,
+    email,
+    points: 0,
+    tier: 'Bronze',
+    joinedDate: new Date().toISOString().slice(0, 10),
+  };
+  MEMBERS.push(member);
+  return member;
+}
+
+/** Awards points for a completed order — creates the member if this is their first purchase. */
+export async function awardPointsByEmail(email: string, name: string, dollarAmount: number): Promise<LoyaltyMember> {
+  const member = await findOrCreateLoyaltyMember(email, name);
+  const pointsEarned = Math.round(dollarAmount * rulesBox.current.pointsPerDollar);
+  member.points += pointsEarned;
+  member.tier = resolveTier(member.points, rulesBox.current.tierThresholds);
+  return member;
+}

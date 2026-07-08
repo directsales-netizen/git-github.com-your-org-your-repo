@@ -1,5 +1,5 @@
 import { getProducts } from '@/lib/api';
-import type { Product, ProductCategory } from '@/types/product';
+import type { ProductCategory, PublicProduct } from '@/types/product';
 
 const MAX_RESULTS = 3;
 
@@ -53,7 +53,7 @@ export function parseNeed(text: string): ParsedNeed {
   };
 }
 
-export async function matchProducts(text: string): Promise<{ products: Product[]; need: ParsedNeed }> {
+export async function matchProducts(text: string): Promise<{ products: PublicProduct[]; need: ParsedNeed }> {
   const need = parseNeed(text);
 
   const categoryQueries = need.categories.length > 0 ? need.categories : [undefined];

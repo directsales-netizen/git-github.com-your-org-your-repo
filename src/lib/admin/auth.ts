@@ -1,18 +1,24 @@
 /**
- * Node-only credential hashing/verification (scrypt). Never import this from
- * src/middleware.ts or src/lib/admin/session.ts — the Edge runtime doesn't
- * have `node:crypto`. This module is only used by the login route handler,
- * which runs on the Node runtime by default.
+ * Node-only admin credential verification. Never import this from
+ * src/proxy.ts or src/lib/admin/session.ts — the Edge runtime doesn't have
+ * `node:crypto`. This module is only used by the login route handler, which
+ * runs on the Node runtime by default. Password hashing itself lives in
+ * src/lib/security/password.ts, shared with customer auth.
  */
 
-import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
+import { verifyPasswordHash } from '@/lib/security/password';
 
-const SCRYPT_KEY_LENGTH = 64;
-
-export function hashPassword(password: string): string {
-  const salt = randomBytes(16).toString('hex');
-  const hash = scryptSync(password, salt, SCRYPT_KEY_LENGTH).toString('hex');
-  return `${salt}:${hash}`;
+/**
+ * This app has exactly one real login (ADMIN_EMAIL/ADMIN_PASSWORD_HASH) — there
+ * is no multi-account auth system, so role can't be looked up from a user
+ * record. ADMIN_ROLE lets an operator downgrade that single account away from
+ * SuperAdmin (e.g. to keep visitor analytics off by default); unset defaults
+ * to SuperAdmin since it's the only account that can sign in at all.
+ */
+export function getConfiguredAdminRole(): 'SuperAdmin' | 'admin' | 'editor' | 'viewer' {
+  const role = process.env.ADMIN_ROLE;
+  if (role === 'admin' || role === 'editor' || role === 'viewer') return role;
+  return 'SuperAdmin';
 }
 
 export function verifyCredentials(email: string, password: string): boolean {
@@ -26,12 +32,5 @@ export function verifyCredentials(email: string, password: string): boolean {
 
   if (email.trim().toLowerCase() !== adminEmail.trim().toLowerCase()) return false;
 
-  const [salt, storedHashHex] = passwordHash.split(':');
-  if (!salt || !storedHashHex) return false;
-
-  const derivedHash = scryptSync(password, salt, SCRYPT_KEY_LENGTH);
-  const storedHash = Buffer.from(storedHashHex, 'hex');
-  if (derivedHash.length !== storedHash.length) return false;
-
-  return timingSafeEqual(derivedHash, storedHash);
+  return verifyPasswordHash(password, passwordHash);
 }

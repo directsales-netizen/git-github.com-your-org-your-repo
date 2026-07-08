@@ -1,11 +1,11 @@
-import type { Product } from './product';
+import type { PublicProduct } from './product';
 
 export type ChatRole = 'user' | 'assistant';
 
 export interface OrderSummary {
   id: string;
   status: 'processing' | 'shipped' | 'out-for-delivery' | 'delivered';
-  items: { title: string; price: number }[];
+  items: { title: string; price: number; quantity?: number; productId?: string }[];
   placedDate: string;
   estimatedDelivery: string;
   trackingNumber?: string;
@@ -31,7 +31,7 @@ export interface MessageAttachment {
 
 /** A block of structured content rendered inside a single assistant message bubble. */
 export type ContentBlock =
-  | { kind: 'products'; products: Product[]; heading?: string }
+  | { kind: 'products'; products: PublicProduct[]; heading?: string }
   | { kind: 'order-status'; order: OrderSummary }
   | { kind: 'appointment-confirmed'; appointment: AppointmentSummary }
   | { kind: 'quick-replies'; options: string[] }
@@ -53,7 +53,7 @@ export interface ChatMessage {
 /** Events streamed from POST /api/chat, one JSON object per NDJSON line. */
 export type ReplyEvent =
   | { type: 'text-delta'; delta: string }
-  | { type: 'products'; products: Product[]; heading?: string }
+  | { type: 'products'; products: PublicProduct[]; heading?: string }
   | { type: 'order-status'; order: OrderSummary }
   | { type: 'appointment-confirmed'; appointment: AppointmentSummary }
   | { type: 'quick-replies'; options: string[] }

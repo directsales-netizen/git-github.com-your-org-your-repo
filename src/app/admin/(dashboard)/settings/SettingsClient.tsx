@@ -41,13 +41,20 @@ export default function SettingsClient({ initialSettings }: { initialSettings: B
       <div className="mt-4">
         <TextField id="address" label="Business address" value={settings.address} onChange={(v) => setSettings((s) => ({ ...s, address: v }))} />
       </div>
-      <div className="mt-4">
+      <div className="mt-4 flex flex-col gap-4">
         <ToggleField
           id="maintenanceMode"
           label="Maintenance mode"
-          description="Displays a maintenance notice to visitors when enabled (display-only in this demo)"
+          description="Replaces the entire public site with a maintenance notice for visitors. Admins stay logged in and can still browse the site normally."
           checked={settings.maintenanceMode}
           onChange={(v) => setSettings((s) => ({ ...s, maintenanceMode: v }))}
+        />
+        <ToggleField
+          id="requireAccountForCheckout"
+          label="Require an account to check out"
+          description="When enabled, customers must register/log in before completing checkout — guest checkout is disabled."
+          checked={settings.requireAccountForCheckout}
+          onChange={(v) => setSettings((s) => ({ ...s, requireAccountForCheckout: v }))}
         />
       </div>
 

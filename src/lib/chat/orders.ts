@@ -1,5 +1,5 @@
 import type { OrderSummary } from '@/types/chat';
-import { globalSingleton } from '@/lib/globalStore';
+import { globalSingleton, globalBox } from '@/lib/globalStore';
 
 // Placeholder order data until a real orders/checkout backend exists —
 // see src/lib/api.ts for the same in-memory-array pattern. Stored via
@@ -58,6 +58,38 @@ const MOCK_ORDERS = globalSingleton('orders', (): OrderRecord[] => [
   },
 ]);
 
+const nextOrderIdBox = globalBox('nextRealOrderId', () => 48600);
+
+/** Called only from the Stripe webhook after a verified, paid checkout session. */
+export async function createOrder(input: {
+  email: string;
+  zip: string;
+  items: { title: string; price: number; quantity: number; productId: string }[];
+}): Promise<OrderSummary> {
+  const placed = new Date();
+  const estimated = new Date(placed);
+  estimated.setDate(estimated.getDate() + 7);
+
+  const record: OrderRecord = {
+    id: `PTN-${nextOrderIdBox.current++}`,
+    email: input.email,
+    zip: input.zip,
+    status: 'processing',
+    items: input.items,
+    placedDate: placed.toISOString().slice(0, 10),
+    estimatedDelivery: estimated.toISOString().slice(0, 10),
+  };
+  MOCK_ORDERS.push(record);
+
+  return {
+    id: record.id,
+    status: record.status,
+    items: record.items,
+    placedDate: record.placedDate,
+    estimatedDelivery: record.estimatedDelivery,
+  };
+}
+
 export async function lookupOrder(orderId: string, secondaryId: string): Promise<OrderSummary | null> {
   const normalizedId = orderId.trim().toUpperCase();
   const normalizedSecondary = secondaryId.trim().toLowerCase();
@@ -79,6 +111,21 @@ export async function lookupOrder(orderId: string, secondaryId: string): Promise
     trackingNumber: order.trackingNumber,
     carrier: order.carrier,
   };
+}
+
+export async function getOrdersByEmail(email: string): Promise<OrderSummary[]> {
+  const normalized = email.trim().toLowerCase();
+  return MOCK_ORDERS.filter((record) => record.email.toLowerCase() === normalized)
+    .map((order) => ({
+      id: order.id,
+      status: order.status,
+      items: order.items,
+      placedDate: order.placedDate,
+      estimatedDelivery: order.estimatedDelivery,
+      trackingNumber: order.trackingNumber,
+      carrier: order.carrier,
+    }))
+    .sort((a, b) => b.placedDate.localeCompare(a.placedDate));
 }
 
 export async function getAllOrders(): Promise<OrderSummary[]> {

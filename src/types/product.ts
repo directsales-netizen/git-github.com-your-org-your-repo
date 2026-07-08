@@ -49,6 +49,17 @@ export interface Product {
   lowStockThreshold: number;
 }
 
+export type StockAvailability = 'in-stock' | 'low-stock' | 'out-of-stock';
+
+/**
+ * What public storefront pages/components receive — never the exact `stock`
+ * count or `lowStockThreshold` (those are internal inventory signals; only
+ * admin-facing code should see them). See toPublicProduct() in src/lib/api.ts.
+ */
+export type PublicProduct = Omit<Product, 'stock' | 'lowStockThreshold'> & {
+  availability: StockAvailability;
+};
+
 export interface ProductFilters {
   category?: ProductCategory;
   grade?: ProductGrade;

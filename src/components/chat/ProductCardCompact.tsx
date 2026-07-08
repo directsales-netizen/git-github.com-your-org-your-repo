@@ -1,9 +1,9 @@
 import Link from 'next/link';
-import type { Product } from '@/types/product';
+import type { PublicProduct } from '@/types/product';
 import { PRODUCT_GRADE_LABELS } from '@/types/product';
 import { cardVariants, cn } from '@/design';
 
-export default function ProductCardCompact({ product }: { product: Product }) {
+export default function ProductCardCompact({ product }: { product: PublicProduct }) {
   return (
     <Link
       href={`/shop?search=${encodeURIComponent(product.title)}`}

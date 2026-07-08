@@ -1,4 +1,4 @@
-import type { Product, ProductCategory, ProductFilters, ProductGrade } from '@/types/product';
+import type { Product, ProductCategory, ProductFilters, ProductGrade, PublicProduct } from '@/types/product';
 import type { Testimonial } from '@/types/testimonial';
 import { globalBox, globalSingleton } from '@/lib/globalStore';
 
@@ -92,16 +92,30 @@ function allRecords(): ProductRecord[] {
   return [...ALL_PRODUCTS, ...createdProducts].filter((record) => !deletedProductIds.has(record.id));
 }
 
+/**
+ * Public projection — strips the exact stock count and threshold down to a
+ * coarse availability badge. Inventory levels are an internal signal (a
+ * competitor or scraper could otherwise infer sell-through rates); customers
+ * only need to know whether they can buy it.
+ */
+function toPublicProduct(product: Product): PublicProduct {
+  const { stock, lowStockThreshold, ...rest } = product;
+  const availability: PublicProduct['availability'] =
+    stock <= 0 ? 'out-of-stock' : stock <= lowStockThreshold ? 'low-stock' : 'in-stock';
+  return { ...rest, availability };
+}
+
 const TESTIMONIALS = globalSingleton('testimonials', (): Testimonial[] => [
   { id: '1', name: 'Maria S.', location: 'Austin, TX', quote: 'The MacBook Pro I bought looked and performed like new. Grading was spot on, and the 30-day warranty gave me real peace of mind.', rating: 5, device: 'MacBook Pro 14"' },
   { id: '2', name: 'Devon K.', location: 'Portland, OR', quote: 'Every port worked, battery health was exactly as listed, and it shipped faster than expected. Easy way to save money without a compromise.', rating: 5, device: 'iPhone 14 Pro' },
   { id: '3', name: 'Priya R.', location: 'Chicago, IL', quote: 'I liked knowing exactly what “Grade B” meant before I bought — no surprises when it arrived. Will buy from them again.', rating: 4, device: 'iPad Air' },
 ]);
 
-export async function getFeaturedProducts(): Promise<Product[]> {
+export async function getFeaturedProducts(): Promise<PublicProduct[]> {
   return ALL_PRODUCTS.filter((record) => !deletedProductIds.has(record.id))
     .slice(0, 6)
-    .map(withStock);
+    .map(withStock)
+    .map(toPublicProduct);
 }
 
 export async function getTestimonials(): Promise<Testimonial[]> {
@@ -131,7 +145,7 @@ export async function deleteTestimonialRecord(id: string): Promise<boolean> {
 }
 
 export async function getProducts(filters: ProductFilters = {}): Promise<{
-  products: Product[];
+  products: PublicProduct[];
   total: number;
   page: number;
   pageSize: number;
@@ -184,7 +198,7 @@ export async function getProducts(filters: ProductFilters = {}): Promise<{
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const page = Math.min(Math.max(requestedPage ?? 1, 1), totalPages);
   const start = (page - 1) * PAGE_SIZE;
-  const products = sorted.slice(start, start + PAGE_SIZE).map(withStock);
+  const products = sorted.slice(start, start + PAGE_SIZE).map(withStock).map(toPublicProduct);
 
   return { products, total, page, pageSize: PAGE_SIZE, totalPages };
 }
@@ -206,6 +220,16 @@ function slugify(title: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/(^-|-$)/g, '');
+}
+
+/**
+ * Server-only — returns the real `stock` count, never routed back to the
+ * client verbatim. This is what the checkout-session route uses to
+ * re-derive authoritative price/stock instead of trusting the request body.
+ */
+export async function getProductById(id: string): Promise<Product | null> {
+  const record = allRecords().find((p) => p.id === id);
+  return record ? withStock(record) : null;
 }
 
 export async function getAllProductsAdmin(): Promise<Product[]> {

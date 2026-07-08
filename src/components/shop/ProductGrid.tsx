@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import type { Product } from '@/types/product';
+import type { PublicProduct } from '@/types/product';
 import ProductCard from '@/components/shop/ProductCard';
 import { cn, grid } from '@/design';
 
@@ -7,7 +7,7 @@ export default function ProductGrid({
   products,
   clearFiltersHref = '/shop',
 }: {
-  products: Product[];
+  products: PublicProduct[];
   clearFiltersHref?: string;
 }) {
   if (products.length === 0) {
