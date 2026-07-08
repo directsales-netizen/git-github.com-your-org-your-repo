@@ -54,11 +54,11 @@ function LoginForm() {
         <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
           <div>
             <label htmlFor="email" className="mb-1.5 block text-label-md font-body text-neutral-light-gray">
-              Email
+              Username
             </label>
             <input
               id="email"
-              type="email"
+              type="text"
               autoComplete="username"
               required
               value={email}
