@@ -41,6 +41,7 @@ const LEGAL_LINKS = [
   { label: 'Return Policy', href: '/returns-policy' },
   { label: 'Warranty Policy', href: '/warranty-policy' },
   { label: 'Accessibility Statement', href: '/accessibility' },
+  { label: 'Admin Login', href: '/admin/login' },
 ];
 
 const SOCIAL_LINKS = [

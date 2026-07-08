@@ -45,6 +45,8 @@ export interface Product {
   imageColor: string;
   dateAdded: string;
   popularity: number;
+  stock: number;
+  lowStockThreshold: number;
 }
 
 export interface ProductFilters {

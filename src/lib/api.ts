@@ -1,12 +1,16 @@
-import type { Product, ProductFilters } from '@/types/product';
+import type { Product, ProductCategory, ProductFilters, ProductGrade } from '@/types/product';
 import type { Testimonial } from '@/types/testimonial';
+import { globalBox, globalSingleton } from '@/lib/globalStore';
 
 const PAGE_SIZE = 20;
+
+/** Raw catalog record shape — stock is layered on via withStock() below, not stored per-literal. */
+type ProductRecord = Omit<Product, 'stock' | 'lowStockThreshold'>;
 
 // Placeholder data until the catalog API is wired up.
 // The first 6 entries are the original featured products — kept identical
 // (id/slug/price/etc.) so getFeaturedProducts()'s output doesn't change.
-const ALL_PRODUCTS: Product[] = [
+const ALL_PRODUCTS: ProductRecord[] = [
   { id: '1', slug: 'macbook-pro-14-m2', title: 'MacBook Pro 14" M2', category: 'MacBooks', grade: 'A', price: 1449, originalPrice: 1999, imageAlt: 'MacBook Pro 14 inch, space gray', imageColor: 'from-neutral-titanium/40 to-bg-tertiary', dateAdded: '2025-09-02', popularity: 88 },
   { id: '2', slug: 'iphone-14-pro', title: 'iPhone 14 Pro', category: 'iPhones', grade: 'A', price: 649, originalPrice: 999, imageAlt: 'iPhone 14 Pro, deep purple', imageColor: 'from-secondary-primary/30 to-bg-tertiary', dateAdded: '2025-09-14', popularity: 95 },
   { id: '3', slug: 'ipad-air-5th-gen', title: 'iPad Air (5th Gen)', category: 'iPads', grade: 'B', price: 429, originalPrice: 599, imageAlt: 'iPad Air, blue finish', imageColor: 'from-accent-primary/30 to-bg-tertiary', dateAdded: '2025-09-26', popularity: 72 },
@@ -51,18 +55,79 @@ const ALL_PRODUCTS: Product[] = [
   { id: '36', slug: 'logitech-mx-master-3', title: 'Logitech MX Master 3', category: 'Accessories', grade: 'D', price: 42, imageAlt: 'Logitech MX Master 3, graphite', imageColor: 'from-accent-dark/30 to-bg-tertiary', dateAdded: '2026-06-30', popularity: 18 },
 ];
 
-const TESTIMONIALS: Testimonial[] = [
+const DEFAULT_LOW_STOCK_THRESHOLD = 5;
+
+// Stock is layered on top of the raw catalog rather than stored per-literal,
+// so admin edits (create/update/delete/adjust stock) mutate these two stores
+// without needing to touch the 36 literal rows above. Resets on server
+// restart, same accepted limitation as the rest of this app's mock data.
+// Stored via globalSingleton/globalBox (see src/lib/globalStore.ts) so
+// admin API route writes are visible to page reads within the same process.
+const stockOverrides = globalSingleton('stockOverrides', () => new Map<string, number>());
+const lowStockThresholdOverrides = globalSingleton('lowStockThresholdOverrides', () => new Map<string, number>());
+const productOverrides = globalSingleton('productOverrides', () => new Map<string, Partial<ProductRecord>>());
+const createdProducts = globalSingleton('createdProducts', (): ProductRecord[] => []);
+const deletedProductIds = globalSingleton('deletedProductIds', () => new Set<string>());
+const nextProductIdBox = globalBox('nextProductId', () => 1000);
+
+function deriveDefaultStock(record: ProductRecord): number {
+  // Deterministic, not random — same product always starts with the same
+  // stock across requests/restarts. Inversely related to popularity (hot
+  // sellers run lower), which naturally produces some rows under the
+  // low-stock threshold for the alert UI to have something to show.
+  return Math.max(0, 40 - Math.round(record.popularity * 0.4));
+}
+
+function withStock(record: ProductRecord): Product {
+  const overrides = productOverrides.get(record.id);
+  const merged = overrides ? { ...record, ...overrides } : record;
+  return {
+    ...merged,
+    stock: stockOverrides.get(record.id) ?? deriveDefaultStock(record),
+    lowStockThreshold: lowStockThresholdOverrides.get(record.id) ?? DEFAULT_LOW_STOCK_THRESHOLD,
+  };
+}
+
+function allRecords(): ProductRecord[] {
+  return [...ALL_PRODUCTS, ...createdProducts].filter((record) => !deletedProductIds.has(record.id));
+}
+
+const TESTIMONIALS = globalSingleton('testimonials', (): Testimonial[] => [
   { id: '1', name: 'Maria S.', location: 'Austin, TX', quote: 'The MacBook Pro I bought looked and performed like new. Grading was spot on, and the 30-day warranty gave me real peace of mind.', rating: 5, device: 'MacBook Pro 14"' },
   { id: '2', name: 'Devon K.', location: 'Portland, OR', quote: 'Every port worked, battery health was exactly as listed, and it shipped faster than expected. Easy way to save money without a compromise.', rating: 5, device: 'iPhone 14 Pro' },
   { id: '3', name: 'Priya R.', location: 'Chicago, IL', quote: 'I liked knowing exactly what “Grade B” meant before I bought — no surprises when it arrived. Will buy from them again.', rating: 4, device: 'iPad Air' },
-];
+]);
 
 export async function getFeaturedProducts(): Promise<Product[]> {
-  return ALL_PRODUCTS.slice(0, 6);
+  return ALL_PRODUCTS.filter((record) => !deletedProductIds.has(record.id))
+    .slice(0, 6)
+    .map(withStock);
 }
 
 export async function getTestimonials(): Promise<Testimonial[]> {
   return TESTIMONIALS;
+}
+
+const nextTestimonialIdBox = globalBox('nextTestimonialId', () => 1000);
+
+export async function addTestimonialRecord(input: Omit<Testimonial, 'id'>): Promise<Testimonial> {
+  const testimonial: Testimonial = { id: String(nextTestimonialIdBox.current++), ...input };
+  TESTIMONIALS.push(testimonial);
+  return testimonial;
+}
+
+export async function updateTestimonialRecord(id: string, patch: Partial<Omit<Testimonial, 'id'>>): Promise<Testimonial | null> {
+  const testimonial = TESTIMONIALS.find((t) => t.id === id);
+  if (!testimonial) return null;
+  Object.assign(testimonial, patch);
+  return testimonial;
+}
+
+export async function deleteTestimonialRecord(id: string): Promise<boolean> {
+  const index = TESTIMONIALS.findIndex((t) => t.id === id);
+  if (index === -1) return false;
+  TESTIMONIALS.splice(index, 1);
+  return true;
 }
 
 export async function getProducts(filters: ProductFilters = {}): Promise<{
@@ -83,7 +148,7 @@ export async function getProducts(filters: ProductFilters = {}): Promise<{
     page: requestedPage,
   } = filters;
 
-  let results = ALL_PRODUCTS;
+  let results = allRecords();
 
   if (category) results = results.filter((product) => product.category === category);
   if (grade) results = results.filter((product) => product.grade === grade);
@@ -119,7 +184,90 @@ export async function getProducts(filters: ProductFilters = {}): Promise<{
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const page = Math.min(Math.max(requestedPage ?? 1, 1), totalPages);
   const start = (page - 1) * PAGE_SIZE;
-  const products = sorted.slice(start, start + PAGE_SIZE);
+  const products = sorted.slice(start, start + PAGE_SIZE).map(withStock);
 
   return { products, total, page, pageSize: PAGE_SIZE, totalPages };
+}
+
+// --- Admin: inventory management -------------------------------------------
+
+export interface ProductInput {
+  title: string;
+  category: ProductCategory;
+  grade: ProductGrade;
+  price: number;
+  originalPrice?: number;
+  stock: number;
+  lowStockThreshold?: number;
+}
+
+function slugify(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+}
+
+export async function getAllProductsAdmin(): Promise<Product[]> {
+  return allRecords().map(withStock);
+}
+
+export async function getLowStockProducts(): Promise<Product[]> {
+  return allRecords()
+    .map(withStock)
+    .filter((product) => product.stock <= product.lowStockThreshold);
+}
+
+export async function createProduct(input: ProductInput): Promise<Product> {
+  const id = String(nextProductIdBox.current++);
+  const record: ProductRecord = {
+    id,
+    slug: `${slugify(input.title)}-${id}`,
+    title: input.title,
+    category: input.category,
+    grade: input.grade,
+    price: input.price,
+    originalPrice: input.originalPrice,
+    imageAlt: input.title,
+    imageColor: 'from-accent-primary/30 to-bg-tertiary',
+    dateAdded: new Date().toISOString().slice(0, 10),
+    popularity: 0,
+  };
+  createdProducts.push(record);
+  stockOverrides.set(id, input.stock);
+  if (input.lowStockThreshold !== undefined) lowStockThresholdOverrides.set(id, input.lowStockThreshold);
+  return withStock(record);
+}
+
+export async function updateProduct(id: string, patch: Partial<ProductInput>): Promise<Product | null> {
+  const record = allRecords().find((p) => p.id === id);
+  if (!record) return null;
+
+  const { stock, lowStockThreshold, ...rest } = patch;
+  if (Object.keys(rest).length > 0) {
+    productOverrides.set(id, { ...productOverrides.get(id), ...rest });
+  }
+  if (stock !== undefined) stockOverrides.set(id, stock);
+  if (lowStockThreshold !== undefined) lowStockThresholdOverrides.set(id, lowStockThreshold);
+
+  return withStock({ ...record, ...productOverrides.get(id) });
+}
+
+export async function updateProductStock(id: string, stock: number): Promise<Product | null> {
+  const record = allRecords().find((p) => p.id === id);
+  if (!record) return null;
+  stockOverrides.set(id, Math.max(0, stock));
+  return withStock({ ...record, ...productOverrides.get(id) });
+}
+
+export async function deleteProduct(id: string): Promise<boolean> {
+  const exists = [...ALL_PRODUCTS, ...createdProducts].some((p) => p.id === id);
+  if (!exists) return false;
+
+  // Original 36 catalog rows are never spliced out of ALL_PRODUCTS (keeps
+  // the storefront dataset's ids/order intact); deletion is tracked via a
+  // filter set instead, applied by allRecords()/getFeaturedProducts() so a
+  // deleted product genuinely disappears everywhere, not just zeroed out.
+  deletedProductIds.add(id);
+  return true;
 }

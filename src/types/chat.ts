@@ -12,11 +12,15 @@ export interface OrderSummary {
   carrier?: string;
 }
 
+export type AppointmentStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled';
+
 export interface AppointmentSummary {
   id: string;
   type: 'repair' | 'consultation' | 'callback';
   preferredWindow: string;
   contactMethod: string;
+  status: AppointmentStatus;
+  createdAt: string;
 }
 
 export interface MessageAttachment {

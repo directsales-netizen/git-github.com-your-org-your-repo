@@ -1,13 +1,16 @@
 import type { OrderSummary } from '@/types/chat';
+import { globalSingleton } from '@/lib/globalStore';
 
 // Placeholder order data until a real orders/checkout backend exists —
-// see src/lib/api.ts for the same in-memory-array pattern.
+// see src/lib/api.ts for the same in-memory-array pattern. Stored via
+// globalSingleton (see src/lib/globalStore.ts) so admin API route writes
+// are visible to page reads within the same server process.
 interface OrderRecord extends OrderSummary {
   email: string;
   zip: string;
 }
 
-const MOCK_ORDERS: OrderRecord[] = [
+const MOCK_ORDERS = globalSingleton('orders', (): OrderRecord[] => [
   {
     id: 'PTN-48213',
     email: 'jordan.lee@example.com',
@@ -53,7 +56,7 @@ const MOCK_ORDERS: OrderRecord[] = [
     trackingNumber: '772819200145',
     carrier: 'FedEx',
   },
-];
+]);
 
 export async function lookupOrder(orderId: string, secondaryId: string): Promise<OrderSummary | null> {
   const normalizedId = orderId.trim().toUpperCase();
@@ -66,6 +69,34 @@ export async function lookupOrder(orderId: string, secondaryId: string): Promise
   );
 
   if (!order) return null;
+
+  return {
+    id: order.id,
+    status: order.status,
+    items: order.items,
+    placedDate: order.placedDate,
+    estimatedDelivery: order.estimatedDelivery,
+    trackingNumber: order.trackingNumber,
+    carrier: order.carrier,
+  };
+}
+
+export async function getAllOrders(): Promise<OrderSummary[]> {
+  return MOCK_ORDERS.map((order) => ({
+    id: order.id,
+    status: order.status,
+    items: order.items,
+    placedDate: order.placedDate,
+    estimatedDelivery: order.estimatedDelivery,
+    trackingNumber: order.trackingNumber,
+    carrier: order.carrier,
+  })).sort((a, b) => b.placedDate.localeCompare(a.placedDate));
+}
+
+export async function updateOrderStatus(id: string, status: OrderSummary['status']): Promise<OrderSummary | null> {
+  const order = MOCK_ORDERS.find((record) => record.id === id);
+  if (!order) return null;
+  order.status = status;
 
   return {
     id: order.id,

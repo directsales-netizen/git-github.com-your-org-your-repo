@@ -1,8 +1,5 @@
 import type { Metadata } from 'next';
 import { Inter, Space_Grotesk } from 'next/font/google';
-import Navigation from '@/components/Navigation';
-import Footer from '@/components/Footer';
-import ChatWidget from '@/components/ChatWidget';
 import './globals.css';
 
 const spaceGrotesk = Space_Grotesk({
@@ -26,12 +23,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${spaceGrotesk.variable} ${inter.variable} h-full`}>
-      <body className="flex min-h-full flex-col">
-        <Navigation />
-        <main className="flex-1">{children}</main>
-        <Footer />
-        <ChatWidget />
-      </body>
+      <body className="flex min-h-full flex-col">{children}</body>
     </html>
   );
 }
