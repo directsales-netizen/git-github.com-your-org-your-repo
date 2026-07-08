@@ -18,11 +18,13 @@ import {
   ShieldCheck,
   Settings,
   History,
+  Radar,
   type LucideIcon,
 } from 'lucide-react';
 import { accessibility, cn } from '@/design';
 import Logo from '@/components/Logo';
 import { useSidebarCollapsed } from '@/hooks/useSidebarCollapsed';
+import type { SessionRole } from '@/lib/admin/session';
 
 interface NavItem {
   label: string;
@@ -64,10 +66,18 @@ const NAV_SECTIONS: NavSection[] = [
   },
 ];
 
-export default function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
+const SUPERADMIN_SECTION: NavSection = {
+  label: 'SuperAdmin',
+  items: [{ label: 'Visitor Analytics', href: '/admin/visitor-analytics', icon: Radar }],
+};
+
+export default function AdminSidebar({ onNavigate, adminRole }: { onNavigate?: () => void; adminRole?: SessionRole }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useSidebarCollapsed();
   const [closedSections, setClosedSections] = useState<Set<string>>(new Set());
+  // Visitor Analytics exposes IP/location/device intelligence — hidden from
+  // the nav entirely for non-SuperAdmin roles, not just gated at the route.
+  const sections = adminRole === 'SuperAdmin' ? [...NAV_SECTIONS, SUPERADMIN_SECTION] : NAV_SECTIONS;
 
   function toggleSection(label: string) {
     setClosedSections((prev) => {
@@ -85,7 +95,7 @@ export default function AdminSidebar({ onNavigate }: { onNavigate?: () => void }
       </div>
 
       <div className="flex-1 overflow-y-auto px-2 py-3">
-        {NAV_SECTIONS.map((section) => {
+        {sections.map((section) => {
           const isClosed = closedSections.has(section.label);
           return (
             <div key={section.label} className="mb-2">

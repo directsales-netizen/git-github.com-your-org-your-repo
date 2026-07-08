@@ -21,3 +21,21 @@ export async function requireAdminSession(): Promise<
   }
   return { session, response: null };
 }
+
+/**
+ * Gate for the Visitor Analytics & Intelligence module — visitor data
+ * (IP, geolocation, device/session detail) is restricted to SuperAdmin,
+ * never exposed to regular admins or customers.
+ */
+export async function requireSuperAdminSession(): Promise<
+  { session: SessionPayload; response: null } | { session: null; response: NextResponse }
+> {
+  const session = await getAdminSession();
+  if (!session) {
+    return { session: null, response: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) };
+  }
+  if (session.role !== 'SuperAdmin') {
+    return { session: null, response: NextResponse.json({ error: 'Forbidden — SuperAdmin role required.' }, { status: 403 }) };
+  }
+  return { session, response: null };
+}

@@ -37,7 +37,7 @@ export interface LoyaltyRules {
   redemptionRate: number; // dollars per 100 points
 }
 
-export type AdminRole = 'admin' | 'editor' | 'viewer';
+export type AdminRole = 'SuperAdmin' | 'admin' | 'editor' | 'viewer';
 
 export interface AdminUser {
   id: string;
@@ -57,6 +57,8 @@ export interface BusinessSettings {
   currency: string;
   taxRatePercent: number;
   maintenanceMode: boolean;
+  /** When true, /api/checkout/session requires a customer session; guest checkout is disabled. */
+  requireAccountForCheckout: boolean;
 }
 
 export interface SiteContentSettings {
@@ -71,4 +73,58 @@ export interface ChatbotSettings {
   greetingEnabled: boolean;
   voiceEnabled: boolean;
   escalationEmail: string;
+}
+
+// --- Visitor Analytics & Intelligence (SuperAdmin-only) ---
+
+export type DeviceType = 'desktop' | 'mobile' | 'tablet';
+
+export interface VisitorPageView {
+  path: string;
+  title?: string;
+  visitedAt: string;
+}
+
+export interface VisitorLocation {
+  country: string | null;
+  region: string | null;
+  city: string | null;
+  /** Full or masked depending on VISITOR_ANALYTICS_STORE_IP — see docs/VISITOR_ANALYTICS.md. */
+  ip: string | null;
+  isp: string | null;
+}
+
+export interface VisitorSession {
+  /** Anonymous, randomly generated — never derived from PII. */
+  id: string;
+  isReturning: boolean;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  location: VisitorLocation;
+  browser: string;
+  os: string;
+  deviceType: DeviceType;
+  screen: string | null;
+  language: string | null;
+  timeZone: string | null;
+  referrer: string | null;
+  landingPage: string;
+  pages: VisitorPageView[];
+  durationSeconds: number;
+}
+
+export interface ChatbotInteractionEvent {
+  id: string;
+  visitorId: string;
+  status: 'ok' | 'error';
+  detail?: string;
+  createdAt: string;
+}
+
+export interface ContactSubmissionEvent {
+  id: string;
+  visitorId: string;
+  kind: 'appointment' | 'contact';
+  summary: string;
+  createdAt: string;
 }

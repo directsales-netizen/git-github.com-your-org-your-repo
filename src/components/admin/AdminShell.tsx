@@ -3,17 +3,19 @@
 import { useState } from 'react';
 import { cn } from '@/design';
 import { useSidebarCollapsed } from '@/hooks/useSidebarCollapsed';
+import type { SessionRole } from '@/lib/admin/session';
 import AdminSidebar from './AdminSidebar';
 import AdminTopbar, { type AdminNotification } from './AdminTopbar';
 import Drawer from './Drawer';
 
 interface AdminShellProps {
   adminEmail: string;
+  adminRole: SessionRole;
   notifications: AdminNotification[];
   children: React.ReactNode;
 }
 
-export default function AdminShell({ adminEmail, notifications, children }: AdminShellProps) {
+export default function AdminShell({ adminEmail, adminRole, notifications, children }: AdminShellProps) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [collapsed] = useSidebarCollapsed();
 
@@ -25,7 +27,7 @@ export default function AdminShell({ adminEmail, notifications, children }: Admi
           collapsed ? 'w-20' : 'w-64'
         )}
       >
-        <AdminSidebar />
+        <AdminSidebar adminRole={adminRole} />
       </aside>
 
       <Drawer isOpen={mobileNavOpen} onClose={() => setMobileNavOpen(false)} title="Menu">

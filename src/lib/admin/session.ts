@@ -8,8 +8,11 @@
 export const ADMIN_SESSION_COOKIE = 'ptn_admin_session';
 export const SESSION_TTL_SECONDS = 8 * 60 * 60; // 8 hours
 
+export type SessionRole = 'SuperAdmin' | 'admin' | 'editor' | 'viewer';
+
 export interface SessionPayload {
   sub: string;
+  role: SessionRole;
   iat: number;
   exp: number;
 }
@@ -52,9 +55,9 @@ async function getHmacKey(): Promise<CryptoKey> {
   );
 }
 
-export async function signSession(email: string): Promise<string> {
+export async function signSession(email: string, role: SessionRole): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
-  const payload: SessionPayload = { sub: email, iat: now, exp: now + SESSION_TTL_SECONDS };
+  const payload: SessionPayload = { sub: email, role, iat: now, exp: now + SESSION_TTL_SECONDS };
   const payloadB64 = toBase64Url(new TextEncoder().encode(JSON.stringify(payload)));
 
   const key = await getHmacKey();
@@ -80,6 +83,10 @@ export async function verifySessionToken(token: string | undefined | null): Prom
 
     const payload = JSON.parse(new TextDecoder().decode(fromBase64Url(payloadB64))) as SessionPayload;
     if (typeof payload.exp !== 'number' || payload.exp < Math.floor(Date.now() / 1000)) return null;
+    // Sessions signed before role was added carry no role — treat as plain
+    // admin so they still work, but they won't see SuperAdmin-only features
+    // until the user logs in again and gets a role-bearing token.
+    if (!payload.role) payload.role = 'admin';
     return payload;
   } catch {
     return null;
