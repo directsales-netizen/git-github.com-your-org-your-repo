@@ -38,10 +38,7 @@ export default function NewsletterSignup() {
             required
             placeholder="you@example.com"
             value={email}
-            onChange={(event) => {
-              setEmail(event.target.value);
-              if (status !== 'idle') setStatus('idle');
-            }}
+            onChange={(event) => setEmail(event.target.value)}
             className={cn(status === 'error' ? inputVariants.error : inputVariants.base, 'flex-1')}
           />
           <button type="submit" className={cn(buttonVariants.primary, spacing.buttonPadding, 'whitespace-nowrap')}>
