@@ -49,6 +49,17 @@ export async function sendVerificationEmail(email: string, token: string, origin
   });
 }
 
+export async function sendAdminInviteEmail(email: string, token: string, origin: string): Promise<SendEmailResult> {
+  const link = `${origin}/admin/accept-invite?token=${encodeURIComponent(token)}`;
+  return sendEmail({
+    to: email,
+    subject: "You've been invited to the Premium TechNoir admin dashboard",
+    html: `<p>You've been invited to the Premium TechNoir admin dashboard. Set your password to finish setting up your account:</p>
+<p><a href="${link}">${link}</a></p>
+<p>This link expires in 24 hours.</p>`,
+  });
+}
+
 export interface OrderConfirmationLine {
   title: string;
   price: number;

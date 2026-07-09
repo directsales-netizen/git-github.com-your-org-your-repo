@@ -6,7 +6,7 @@ export const config = {
   matcher: ['/admin/:path*', '/api/admin/:path*', '/account/:path*', '/api/customer/:path*'],
 };
 
-const PUBLIC_PATHS = ['/admin/login', '/api/admin/auth/login'];
+const PUBLIC_PATHS = ['/admin/login', '/api/admin/auth/login', '/admin/accept-invite', '/api/admin/invite/accept'];
 const PUBLIC_CUSTOMER_PATHS = ['/api/customer/auth/register', '/api/customer/auth/login', '/api/customer/auth/logout', '/api/customer/auth/verify-email'];
 
 function isPublicPath(pathname: string): boolean {

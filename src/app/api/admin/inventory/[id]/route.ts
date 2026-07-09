@@ -1,10 +1,10 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { requireSuperAdminSessionWithOtp } from '@/lib/admin/getSession';
+import { requireAdminOrAboveSessionWithOtp } from '@/lib/admin/getSession';
 import { logActivity } from '@/lib/admin/activityLog';
 import { deleteProduct, updateProduct, type ProductInput } from '@/lib/api';
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { session, response } = await requireSuperAdminSessionWithOtp();
+  const { session, response } = await requireAdminOrAboveSessionWithOtp();
   if (!session) return response;
 
   const { id } = await params;
@@ -19,7 +19,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 }
 
 export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { session, response } = await requireSuperAdminSessionWithOtp();
+  const { session, response } = await requireAdminOrAboveSessionWithOtp();
   if (!session) return response;
 
   const { id } = await params;

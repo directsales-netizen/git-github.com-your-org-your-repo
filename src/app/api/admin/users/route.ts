@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'name, email, and role are required.' }, { status: 400 });
   }
 
-  const user = await createAdminUser(body);
+  const user = await createAdminUser(body, new URL(request.url).origin);
   await logActivity({ actor: session.sub, action: 'invite', target: `user ${user.email}` });
 
   return NextResponse.json(user, { status: 201 });

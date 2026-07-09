@@ -1,11 +1,11 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { requireSuperAdminSessionWithOtp } from '@/lib/admin/getSession';
+import { requireEditorOrAboveSessionWithOtp } from '@/lib/admin/getSession';
 import { logActivity } from '@/lib/admin/activityLog';
 import { updateSiteContent } from '@/lib/admin/content';
 import type { SiteContentSettings } from '@/types/admin';
 
 export async function PATCH(request: NextRequest) {
-  const { session, response } = await requireSuperAdminSessionWithOtp();
+  const { session, response } = await requireEditorOrAboveSessionWithOtp();
   if (!session) return response;
 
   const patch = (await request.json()) as Partial<SiteContentSettings>;

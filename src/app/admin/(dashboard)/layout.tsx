@@ -12,10 +12,10 @@ export default async function AdminDashboardLayout({ children }: { children: Rea
   // the proxy matcher config ever drifts.
   const session = await getAdminSession();
   if (!session) redirect('/admin/login');
-  // Dashboard access is restricted to SuperAdmin only — admin/editor/viewer
-  // roles exist for the illustrative Users & Roles module but cannot sign
-  // into the dashboard itself.
-  if (session.role !== 'SuperAdmin') redirect('/admin/login?error=forbidden');
+  // Any authenticated admin role gets into the dashboard shell — modules
+  // that must stay SuperAdmin-only (Users & Roles, Settings, Visitor
+  // Analytics, Live Chat Takeover) add their own page-level guard instead,
+  // and their API routes are gated separately (src/lib/admin/getSession.ts).
 
   const [lowStock, appointments, visitorRequests] = await Promise.all([
     getLowStockProducts(),

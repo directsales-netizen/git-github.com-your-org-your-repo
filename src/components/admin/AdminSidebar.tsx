@@ -61,17 +61,15 @@ const NAV_SECTIONS: NavSection[] = [
   { label: 'Site', items: [{ label: 'Content', href: '/admin/content', icon: FileText }] },
   {
     label: 'System',
-    items: [
-      { label: 'Users & Roles', href: '/admin/users', icon: ShieldCheck },
-      { label: 'Settings', href: '/admin/settings', icon: Settings },
-      { label: 'Activity Logs', href: '/admin/logs', icon: History },
-    ],
+    items: [{ label: 'Activity Logs', href: '/admin/logs', icon: History }],
   },
 ];
 
 const SUPERADMIN_SECTION: NavSection = {
   label: 'SuperAdmin',
   items: [
+    { label: 'Users & Roles', href: '/admin/users', icon: ShieldCheck },
+    { label: 'Settings', href: '/admin/settings', icon: Settings },
     { label: 'Visitor Analytics', href: '/admin/visitor-analytics', icon: Radar },
     { label: 'Live Chat Takeover', href: '/admin/chatbot/live', icon: Headset },
   ],

@@ -7,6 +7,8 @@
  */
 
 import { verifyPasswordHash } from '@/lib/security/password';
+import { getAdminUserByEmail } from '@/lib/admin/users';
+import type { SessionRole } from '@/lib/admin/session';
 
 /**
  * This app has exactly one real login (ADMIN_EMAIL/ADMIN_PASSWORD_HASH) — there
@@ -33,4 +35,23 @@ export function verifyCredentials(email: string, password: string): boolean {
   if (email.trim().toLowerCase() !== adminEmail.trim().toLowerCase()) return false;
 
   return verifyPasswordHash(password, passwordHash);
+}
+
+/**
+ * Resolves a login attempt against either the single env-var "break-glass"
+ * account (verifyCredentials — unchanged, always SuperAdmin-configured role)
+ * or a real invited account activated via src/lib/admin/users.ts. Checked in
+ * that order so the bootstrap account always works even if it collides with
+ * an invited email.
+ */
+export async function resolveAdminLogin(email: string, password: string): Promise<{ email: string; role: SessionRole } | null> {
+  if (verifyCredentials(email, password)) {
+    return { email, role: getConfiguredAdminRole() };
+  }
+
+  const user = await getAdminUserByEmail(email);
+  if (!user || user.status !== 'active' || !user.passwordHash) return null;
+  if (!verifyPasswordHash(password, user.passwordHash)) return null;
+
+  return { email: user.email, role: user.role };
 }

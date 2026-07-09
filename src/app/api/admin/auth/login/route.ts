@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { verifyCredentials, getConfiguredAdminRole } from '@/lib/admin/auth';
+import { resolveAdminLogin } from '@/lib/admin/auth';
 import { signSession, ADMIN_SESSION_COOKIE, SESSION_TTL_SECONDS } from '@/lib/admin/session';
 import { logActivity } from '@/lib/admin/activityLog';
 import { createRateLimiter } from '@/lib/security/rateLimit';
@@ -25,11 +25,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Email and password are required.' }, { status: 400 });
   }
 
-  if (!verifyCredentials(email, password)) {
+  const resolved = await resolveAdminLogin(email, password);
+  if (!resolved) {
     return NextResponse.json({ error: 'Invalid email or password.' }, { status: 401 });
   }
 
-  const token = await signSession(email, getConfiguredAdminRole());
+  const token = await signSession(resolved.email, resolved.role);
   const response = NextResponse.json({ ok: true });
   response.cookies.set(ADMIN_SESSION_COOKIE, token, {
     httpOnly: true,
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest) {
     maxAge: SESSION_TTL_SECONDS,
   });
 
-  await logActivity({ actor: email, action: 'login', target: 'admin session' });
+  await logActivity({ actor: resolved.email, action: 'login', target: 'admin session' });
 
   return response;
 }

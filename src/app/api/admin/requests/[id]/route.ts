@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { requireSuperAdminSessionWithOtp } from '@/lib/admin/getSession';
+import { requireAdminOrAboveSessionWithOtp } from '@/lib/admin/getSession';
 import { logActivity } from '@/lib/admin/activityLog';
 import { updateVisitorRequest } from '@/lib/admin/requests';
 import type { RequestPriority, RequestStatus } from '@/types/admin';
@@ -12,7 +12,7 @@ interface UpdateBody {
 }
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { session, response } = await requireSuperAdminSessionWithOtp();
+  const { session, response } = await requireAdminOrAboveSessionWithOtp();
   if (!session) return response;
 
   const { id } = await params;
