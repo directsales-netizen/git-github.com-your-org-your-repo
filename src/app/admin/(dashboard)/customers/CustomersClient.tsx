@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { adminFetch } from '@/lib/admin/adminFetch';
 import { useRouter } from 'next/navigation';
 import { Ban, CheckCircle2 } from 'lucide-react';
 import type { Customer } from '@/types/admin';
@@ -14,7 +15,7 @@ export default function CustomersClient({ initialCustomers }: { initialCustomers
 
   async function toggleStatus(customer: Customer) {
     const nextStatus = customer.status === 'active' ? 'blocked' : 'active';
-    const response = await fetch(`/api/admin/customers/${customer.id}`, {
+    const response = await adminFetch(`/api/admin/customers/${customer.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: nextStatus }),

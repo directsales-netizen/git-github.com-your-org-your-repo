@@ -2,6 +2,7 @@ import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import ChatWidget from '@/components/ChatWidget';
 import MaintenancePage from '@/components/MaintenancePage';
+import OrdersPausedBanner from '@/components/OrdersPausedBanner';
 import { CartProvider } from '@/lib/cart/CartContext';
 import { getCustomerSession } from '@/lib/customer/getSession';
 import { getAdminSession } from '@/lib/admin/getSession';
@@ -24,7 +25,8 @@ export default async function StorefrontLayout({ children }: { children: React.R
   }
 
   return (
-    <CartProvider>
+    <CartProvider ordersPaused={settings.ordersPaused}>
+      {settings.ordersPaused && <OrdersPausedBanner supportEmail={settings.supportEmail} />}
       <Navigation isAuthenticated={Boolean(session)} />
       <main className="flex-1">{children}</main>
       <Footer />

@@ -10,14 +10,26 @@ interface Props {
   isAuthenticated: boolean;
   prefillEmail?: string;
   requireAccount: boolean;
+  ordersPaused: boolean;
+  supportEmail: string;
 }
 
-export default function CheckoutClient({ isAuthenticated, prefillEmail, requireAccount }: Props) {
+export default function CheckoutClient({ isAuthenticated, prefillEmail, requireAccount, ordersPaused, supportEmail }: Props) {
   const { items, subtotal } = useCart();
   const [email, setEmail] = useState(prefillEmail ?? '');
   const [address, setAddress] = useState({ line1: '', line2: '', city: '', state: '', zip: '' });
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  if (ordersPaused) {
+    return (
+      <EmptyState
+        title="Online ordering is temporarily paused"
+        description={`We're not able to process checkout right now. To place an order, email ${supportEmail} or chat with our AI assistant.`}
+        action={<a href={`mailto:${supportEmail}`} className={cn(buttonVariants.primary, spacing.buttonPadding, 'text-body-sm')}>Email {supportEmail}</a>}
+      />
+    );
+  }
 
   if (items.length === 0) {
     return (

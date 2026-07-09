@@ -48,6 +48,8 @@ export interface ChatMessage {
   streaming?: boolean;
   /** True if generation was interrupted before completion (barge-in or stop button). */
   aborted?: boolean;
+  /** Set on assistant messages sent by a SuperAdmin during a live takeover, so the bubble can be labeled. */
+  authoredBy?: 'human';
 }
 
 /** Events streamed from POST /api/chat, one JSON object per NDJSON line. */
@@ -58,6 +60,7 @@ export type ReplyEvent =
   | { type: 'appointment-confirmed'; appointment: AppointmentSummary }
   | { type: 'quick-replies'; options: string[] }
   | { type: 'escalate'; reason: string }
+  | { type: 'human-takeover' }
   | { type: 'context'; context: ConversationContext }
   | { type: 'done' }
   | { type: 'error'; message: string };

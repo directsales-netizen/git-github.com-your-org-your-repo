@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useReducer, useRef } from 'react';
+import { useCallback, useEffect, useReducer, useRef } from 'react';
 import type {
   ChatMessage,
   ChatUIMode,
@@ -34,6 +34,10 @@ interface ChatState {
   status: 'idle' | 'sending' | 'streaming' | 'error';
   context: ConversationContext;
   unreadCount: number;
+  /** A SuperAdmin has taken this conversation over — the bot won't reply again; admin replies arrive via polling. */
+  humanMode: boolean;
+  /** Set once this conversation escalates, so polling for admin replies can start even before a takeover lands. */
+  escalated: boolean;
 }
 
 type ChatAction =
@@ -48,7 +52,8 @@ type ChatAction =
   | { type: 'STREAM_DONE'; id: string }
   | { type: 'STREAM_ABORTED'; id: string }
   | { type: 'STREAM_ERROR'; id: string; message: string }
-  | { type: 'ADD_UNREAD_MESSAGE'; message: ChatMessage };
+  | { type: 'ADD_UNREAD_MESSAGE'; message: ChatMessage }
+  | { type: 'HUMAN_TAKEOVER'; assistantMessageId: string };
 
 function updateMessage(messages: ChatMessage[], id: string, update: (m: ChatMessage) => ChatMessage): ChatMessage[] {
   return messages.map((message) => (message.id === id ? update(message) : message));
@@ -82,6 +87,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
     case 'BLOCK':
       return {
         ...state,
+        escalated: state.escalated || action.block.kind === 'escalate',
         messages: updateMessage(state.messages, action.id, (m) => ({ ...m, blocks: [...m.blocks, action.block] })),
       };
     case 'CONTEXT':
@@ -114,6 +120,17 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         messages: [...state.messages, action.message],
         unreadCount: state.uiMode === 'closed' ? state.unreadCount + 1 : state.unreadCount,
       };
+    case 'HUMAN_TAKEOVER':
+      return {
+        ...state,
+        humanMode: true,
+        status: 'idle',
+        // Drop the empty placeholder bubble SEND_START speculatively added for
+        // this turn — no bot reply is coming, so there's nothing to fill it.
+        messages: action.assistantMessageId
+          ? state.messages.filter((m) => m.id !== action.assistantMessageId || m.text || m.blocks.length > 0)
+          : state.messages,
+      };
     default:
       return state;
   }
@@ -128,6 +145,8 @@ function initialState(): ChatState {
     status: 'idle',
     context: createEmptyContext(),
     unreadCount: 0,
+    humanMode: false,
+    escalated: false,
   };
 }
 
@@ -202,6 +221,39 @@ export function useChatAssistant() {
     abortControllerRef.current?.abort();
   }, []);
 
+  // Once a conversation escalates or is taken over, a SuperAdmin's replies
+  // no longer arrive via sendMessage's response stream (that only fires in
+  // response to this visitor's own turns) — poll for them instead. Scoped to
+  // the panel being open so a closed widget doesn't poll in the background.
+  const lastAdminSeenRef = useRef(0);
+  useEffect(() => {
+    if (state.uiMode === 'closed') return;
+    if (!state.humanMode && !state.escalated) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/chat/live?after=${lastAdminSeenRef.current}`);
+        if (!res.ok) return;
+        const data: { mode: 'bot' | 'human'; escalated: boolean; messages: { id: string; text: string; createdAt: number }[] } =
+          await res.json();
+
+        if (data.mode === 'human') dispatch({ type: 'HUMAN_TAKEOVER', assistantMessageId: '' });
+
+        for (const m of data.messages) {
+          lastAdminSeenRef.current = Math.max(lastAdminSeenRef.current, m.createdAt);
+          dispatch({
+            type: 'ADD_UNREAD_MESSAGE',
+            message: { id: m.id, role: 'assistant', text: m.text, blocks: [], createdAt: m.createdAt, authoredBy: 'human' },
+          });
+        }
+      } catch {
+        // Best-effort — a missed poll tick just gets retried on the next one.
+      }
+    }, 3500);
+
+    return () => clearInterval(interval);
+  }, [state.uiMode, state.humanMode, state.escalated]);
+
   return {
     state,
     sendMessage,
@@ -236,6 +288,9 @@ function applyEvent(
       break;
     case 'escalate':
       dispatch({ type: 'BLOCK', id: assistantMessageId, block: { kind: 'escalate', reason: event.reason } });
+      break;
+    case 'human-takeover':
+      dispatch({ type: 'HUMAN_TAKEOVER', assistantMessageId });
       break;
     case 'context':
       dispatch({ type: 'CONTEXT', context: event.context });

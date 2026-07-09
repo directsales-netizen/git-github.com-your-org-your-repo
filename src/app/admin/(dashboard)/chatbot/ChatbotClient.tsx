@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { adminFetch } from '@/lib/admin/adminFetch';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { ChatConversation } from '@/lib/admin/chatConversations';
@@ -17,7 +18,7 @@ export default function ChatbotClient({ conversations, initialSettings }: { conv
 
   async function saveSettings() {
     setIsSaving(true);
-    const response = await fetch('/api/admin/chatbot/settings', {
+    const response = await adminFetch('/api/admin/chatbot/settings', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(settings),

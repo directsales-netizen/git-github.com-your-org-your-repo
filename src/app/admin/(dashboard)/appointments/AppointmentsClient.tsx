@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { adminFetch } from '@/lib/admin/adminFetch';
 import { useRouter } from 'next/navigation';
 import type { AppointmentStatus, AppointmentSummary } from '@/types/chat';
 import { APPOINTMENT_TYPE_LABELS } from '@/lib/chat/appointments';
@@ -29,7 +30,7 @@ export default function AppointmentsClient({ initialAppointments }: { initialApp
   const [appointments, setAppointments] = useState(initialAppointments);
 
   async function updateStatus(appointment: AppointmentSummary, status: AppointmentStatus) {
-    const response = await fetch(`/api/admin/appointments/${appointment.id}`, {
+    const response = await adminFetch(`/api/admin/appointments/${appointment.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status }),

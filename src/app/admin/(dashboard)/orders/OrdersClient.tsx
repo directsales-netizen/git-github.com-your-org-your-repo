@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { adminFetch } from '@/lib/admin/adminFetch';
 import { useRouter } from 'next/navigation';
 import type { OrderSummary } from '@/types/chat';
 import { inputVariants } from '@/design';
@@ -28,7 +29,7 @@ export default function OrdersClient({ initialOrders }: { initialOrders: OrderSu
   const [orders, setOrders] = useState(initialOrders);
 
   async function updateStatus(order: OrderSummary, status: OrderSummary['status']) {
-    const response = await fetch(`/api/admin/orders/${order.id}`, {
+    const response = await adminFetch(`/api/admin/orders/${order.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status }),

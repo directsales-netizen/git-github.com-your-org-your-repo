@@ -3,7 +3,7 @@ import { requireStripeConfigured } from '@/lib/stripe/client';
 import { getProductById } from '@/lib/api';
 import { getBusinessSettings } from '@/lib/admin/settings';
 import { getCustomerSession } from '@/lib/customer/getSession';
-import { findCustomerAccountByEmail } from '@/lib/customer/store';
+import { findCustomerAccountByEmail, setStripeCustomerId } from '@/lib/customer/store';
 import { stashPendingCheckout, type PendingCheckoutItem } from '@/lib/checkout/pendingCheckouts';
 import { createRateLimiter } from '@/lib/security/rateLimit';
 
@@ -41,15 +41,24 @@ export async function POST(request: NextRequest) {
   }
 
   const settings = await getBusinessSettings();
-  const customerSession = await getCustomerSession();
 
-  if (settings.requireAccountForCheckout && !customerSession) {
+  if (settings.ordersPaused) {
+    return NextResponse.json({ error: 'Online ordering is temporarily paused. Please email support or use the AI assistant to place an order.' }, { status: 503 });
+  }
+
+  // Payment is only ever allowed through a verified account — there is no
+  // guest checkout path, regardless of the (now-redundant but still admin-
+  // editable) requireAccountForCheckout setting. Phone verification doesn't
+  // exist yet in this app, so email verification is the enforced credential.
+  const customerSession = await getCustomerSession();
+  if (!customerSession) {
     return NextResponse.json({ error: 'An account is required to check out.' }, { status: 401 });
   }
 
-  const email = customerSession?.sub ?? body.email;
-  if (!email) {
-    return NextResponse.json({ error: 'Email is required.' }, { status: 400 });
+  const email = customerSession.sub;
+  const account = await findCustomerAccountByEmail(email);
+  if (!account?.emailVerified) {
+    return NextResponse.json({ error: 'Please verify your email before completing checkout.' }, { status: 403 });
   }
 
   // --- The entire tamper-prevention mechanism lives in this loop: every
@@ -85,13 +94,24 @@ export async function POST(request: NextRequest) {
 
   const origin = new URL(request.url).origin;
   const subtotal = verifiedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const account = await findCustomerAccountByEmail(email);
-  const name = account?.name ?? email.split('@')[0];
+  const name = account.name;
+
+  // Reuse the account's Stripe Customer across visits (creating it on first
+  // checkout) so Stripe can securely store the payment method and offer it
+  // back on return — customers never re-type card details after visit one.
+  let stripeCustomerId = account.stripeCustomerId;
+  if (!stripeCustomerId) {
+    const customer = await stripe.customers.create({ email, name });
+    stripeCustomerId = customer.id;
+    await setStripeCustomerId(email, stripeCustomerId);
+  }
 
   const session = await stripe.checkout.sessions.create({
     mode: 'payment',
     line_items: lineItems,
-    customer_email: email,
+    customer: stripeCustomerId,
+    payment_method_types: ['card', 'paypal', 'cashapp'],
+    payment_intent_data: { setup_future_usage: 'off_session' },
     success_url: `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${origin}/checkout/cancel`,
   });

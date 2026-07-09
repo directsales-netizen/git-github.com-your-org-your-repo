@@ -7,6 +7,7 @@ import type { SessionRole } from '@/lib/admin/session';
 import AdminSidebar from './AdminSidebar';
 import AdminTopbar, { type AdminNotification } from './AdminTopbar';
 import Drawer from './Drawer';
+import OtpGateModal from './OtpGateModal';
 
 interface AdminShellProps {
   adminEmail: string;
@@ -38,6 +39,8 @@ export default function AdminShell({ adminEmail, adminRole, notifications, child
         <AdminTopbar adminEmail={adminEmail} notifications={notifications} onMenuClick={() => setMobileNavOpen(true)} />
         <main className="flex-1 overflow-y-auto p-4 tablet:p-6">{children}</main>
       </div>
+
+      <OtpGateModal />
     </div>
   );
 }

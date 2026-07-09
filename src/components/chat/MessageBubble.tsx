@@ -27,6 +27,10 @@ export default function MessageBubble({ message, onQuickReply, disabled }: Messa
       )}
 
       <div className={cn('max-w-[85%]', isUser ? 'items-end' : 'items-start', 'flex flex-col gap-2')}>
+        {message.authoredBy === 'human' && (
+          <p className="text-caption font-body text-accent-primary">Live agent</p>
+        )}
+
         {message.text && (
           <div
             className={cn(

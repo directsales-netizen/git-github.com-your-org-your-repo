@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { adminFetch } from '@/lib/admin/adminFetch';
 import { useRouter } from 'next/navigation';
 import { Minus, Plus } from 'lucide-react';
 import type { LoyaltyMember, LoyaltyRules } from '@/types/admin';
@@ -23,7 +24,7 @@ export default function RewardsClient({ initialMembers, initialRules }: { initia
   const [isSaving, setIsSaving] = useState(false);
 
   async function adjustPoints(member: LoyaltyMember, delta: number) {
-    const response = await fetch(`/api/admin/rewards/members/${member.id}`, {
+    const response = await adminFetch(`/api/admin/rewards/members/${member.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ delta }),
@@ -37,7 +38,7 @@ export default function RewardsClient({ initialMembers, initialRules }: { initia
 
   async function saveRules() {
     setIsSaving(true);
-    const response = await fetch('/api/admin/rewards/rules', {
+    const response = await adminFetch('/api/admin/rewards/rules', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(rules),

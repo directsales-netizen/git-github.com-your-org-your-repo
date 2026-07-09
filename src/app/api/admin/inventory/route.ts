@@ -1,10 +1,10 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { requireAdminSession } from '@/lib/admin/getSession';
+import { requireSuperAdminSessionWithOtp } from '@/lib/admin/getSession';
 import { logActivity } from '@/lib/admin/activityLog';
 import { createProduct, type ProductInput } from '@/lib/api';
 
 export async function POST(request: NextRequest) {
-  const { session, response } = await requireAdminSession();
+  const { session, response } = await requireSuperAdminSessionWithOtp();
   if (!session) return response;
 
   const body = (await request.json()) as ProductInput;

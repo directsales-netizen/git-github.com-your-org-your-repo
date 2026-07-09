@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { adminFetch } from '@/lib/admin/adminFetch';
 import { useRouter } from 'next/navigation';
 import { Pencil, Trash2 } from 'lucide-react';
 import type { SiteContentSettings } from '@/types/admin';
@@ -34,7 +35,7 @@ export default function ContentClient({ initialContent, initialTestimonials }: {
 
   async function saveContent() {
     setIsSavingContent(true);
-    const response = await fetch('/api/admin/content', {
+    const response = await adminFetch('/api/admin/content', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(content),
@@ -66,7 +67,7 @@ export default function ContentClient({ initialContent, initialTestimonials }: {
 
   async function saveTestimonial() {
     const payload = { ...form, rating: Number(form.rating) };
-    const response = await fetch(editingId ? `/api/admin/content/testimonials/${editingId}` : '/api/admin/content/testimonials', {
+    const response = await adminFetch(editingId ? `/api/admin/content/testimonials/${editingId}` : '/api/admin/content/testimonials', {
       method: editingId ? 'PATCH' : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -81,7 +82,7 @@ export default function ContentClient({ initialContent, initialTestimonials }: {
 
   async function handleDelete() {
     if (!deleteTarget) return;
-    const response = await fetch(`/api/admin/content/testimonials/${deleteTarget.id}`, { method: 'DELETE' });
+    const response = await adminFetch(`/api/admin/content/testimonials/${deleteTarget.id}`, { method: 'DELETE' });
     if (response.ok) {
       setTestimonials((prev) => prev.filter((t) => t.id !== deleteTarget.id));
       router.refresh();

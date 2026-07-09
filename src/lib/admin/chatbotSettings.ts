@@ -4,7 +4,7 @@ import { globalBox } from '@/lib/globalStore';
 const settingsBox = globalBox('chatbotSettings', (): ChatbotSettings => ({
   greetingEnabled: true,
   voiceEnabled: true,
-  escalationEmail: 'support@premiumtechnoir.com',
+  escalationEmail: 'directsales@premiumtechnoir.org',
 }));
 
 export async function getChatbotSettings(): Promise<ChatbotSettings> {

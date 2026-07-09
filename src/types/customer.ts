@@ -5,6 +5,8 @@ export interface CustomerAccount {
   name: string;
   emailVerified: boolean;
   createdAt: string;
+  /** Stripe Customer ID, created on first checkout and reused after — lets Stripe offer a saved payment method on return visits instead of asking for card details again. */
+  stripeCustomerId?: string;
 }
 
 export interface SavedAddress {

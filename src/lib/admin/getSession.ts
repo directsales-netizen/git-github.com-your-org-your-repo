@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { ADMIN_SESSION_COOKIE, verifySessionToken, type SessionPayload } from './session';
+import { isOtpVerified } from './otp';
 
 /** For Server Components and Route Handlers (Node runtime) — not for middleware. */
 export async function getAdminSession(): Promise<SessionPayload | null> {
@@ -38,4 +39,27 @@ export async function requireSuperAdminSession(): Promise<
     return { session: null, response: NextResponse.json({ error: 'Forbidden — SuperAdmin role required.' }, { status: 403 }) };
   }
   return { session, response: null };
+}
+
+/**
+ * Gate for every mutating /api/admin/** route — on top of
+ * requireSuperAdminSession(), also requires the SMS PIN (src/lib/admin/otp.ts)
+ * to have been verified for this session. When unverified, the response
+ * carries `otpRequired: true` so the client (src/lib/admin/adminFetch.ts)
+ * can prompt for the PIN and retry, rather than treating it as a hard
+ * auth failure.
+ */
+export async function requireSuperAdminSessionWithOtp(): Promise<
+  { session: SessionPayload; response: null } | { session: null; response: NextResponse }
+> {
+  const result = await requireSuperAdminSession();
+  if (!result.session) return result;
+
+  if (!isOtpVerified(result.session)) {
+    return {
+      session: null,
+      response: NextResponse.json({ error: 'OTP verification required', otpRequired: true }, { status: 401 }),
+    };
+  }
+  return result;
 }

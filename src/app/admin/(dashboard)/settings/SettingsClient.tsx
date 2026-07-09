@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { adminFetch } from '@/lib/admin/adminFetch';
 import { useRouter } from 'next/navigation';
 import type { BusinessSettings } from '@/types/admin';
 import { buttonVariants, cardVariants, cn, spacing } from '@/design';
@@ -15,7 +16,7 @@ export default function SettingsClient({ initialSettings }: { initialSettings: B
   async function save() {
     setIsSaving(true);
     setSaved(false);
-    const response = await fetch('/api/admin/settings', {
+    const response = await adminFetch('/api/admin/settings', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(settings),
@@ -55,6 +56,13 @@ export default function SettingsClient({ initialSettings }: { initialSettings: B
           description="When enabled, customers must register/log in before completing checkout — guest checkout is disabled."
           checked={settings.requireAccountForCheckout}
           onChange={(v) => setSettings((s) => ({ ...s, requireAccountForCheckout: v }))}
+        />
+        <ToggleField
+          id="ordersPaused"
+          label="Pause order inquiries"
+          description="Shows a site-wide notice that ordering is paused and directs customers to email support or the AI assistant instead. Browsing stays open; adding to cart and checkout are blocked. Unlike maintenance mode, the storefront itself stays up."
+          checked={settings.ordersPaused}
+          onChange={(v) => setSettings((s) => ({ ...s, ordersPaused: v }))}
         />
       </div>
 

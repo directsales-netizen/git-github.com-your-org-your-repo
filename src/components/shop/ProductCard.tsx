@@ -13,7 +13,7 @@ const AVAILABILITY_LABEL: Record<PublicProduct['availability'], string> = {
 };
 
 export default function ProductCard({ product }: { product: PublicProduct }) {
-  const { addItem } = useCart();
+  const { addItem, ordersPaused } = useCart();
   const [added, setAdded] = useState(false);
 
   function handleAdd() {
@@ -51,11 +51,11 @@ export default function ProductCard({ product }: { product: PublicProduct }) {
 
       <button
         type="button"
-        disabled={product.availability === 'out-of-stock'}
+        disabled={product.availability === 'out-of-stock' || ordersPaused}
         onClick={handleAdd}
         className={cn(buttonVariants.primary, spacing.buttonPadding, 'mt-4 text-body-sm')}
       >
-        {product.availability === 'out-of-stock' ? 'Out of stock' : added ? 'Added to cart' : 'Quick Add'}
+        {ordersPaused ? 'Ordering paused' : product.availability === 'out-of-stock' ? 'Out of stock' : added ? 'Added to cart' : 'Quick Add'}
       </button>
     </div>
   );

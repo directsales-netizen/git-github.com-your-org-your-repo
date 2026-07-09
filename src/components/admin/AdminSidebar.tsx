@@ -19,6 +19,8 @@ import {
   Settings,
   History,
   Radar,
+  Headset,
+  Inbox,
   type LucideIcon,
 } from 'lucide-react';
 import { accessibility, cn } from '@/design';
@@ -50,6 +52,7 @@ const NAV_SECTIONS: NavSection[] = [
   {
     label: 'Engagement',
     items: [
+      { label: 'Requests', href: '/admin/requests', icon: Inbox },
       { label: 'AI Chatbot', href: '/admin/chatbot', icon: MessageSquare },
       { label: 'Appointments', href: '/admin/appointments', icon: CalendarClock },
       { label: 'Rewards', href: '/admin/rewards', icon: Gift },
@@ -68,7 +71,10 @@ const NAV_SECTIONS: NavSection[] = [
 
 const SUPERADMIN_SECTION: NavSection = {
   label: 'SuperAdmin',
-  items: [{ label: 'Visitor Analytics', href: '/admin/visitor-analytics', icon: Radar }],
+  items: [
+    { label: 'Visitor Analytics', href: '/admin/visitor-analytics', icon: Radar },
+    { label: 'Live Chat Takeover', href: '/admin/chatbot/live', icon: Headset },
+  ],
 };
 
 export default function AdminSidebar({ onNavigate, adminRole }: { onNavigate?: () => void; adminRole?: SessionRole }) {

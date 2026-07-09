@@ -20,6 +20,8 @@ export default async function CheckoutPage() {
           isAuthenticated={Boolean(session)}
           prefillEmail={session?.sub}
           requireAccount={settings.requireAccountForCheckout}
+          ordersPaused={settings.ordersPaused}
+          supportEmail={settings.supportEmail}
         />
       </div>
     </section>

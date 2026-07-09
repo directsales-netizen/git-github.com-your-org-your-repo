@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { adminFetch } from '@/lib/admin/adminFetch';
 import { useRouter } from 'next/navigation';
 import { Trash2 } from 'lucide-react';
 import type { AdminRole, AdminUser } from '@/types/admin';
@@ -27,7 +28,7 @@ export default function UsersClient({ initialUsers }: { initialUsers: AdminUser[
   const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
 
   async function updateRole(user: AdminUser, role: AdminRole) {
-    const response = await fetch(`/api/admin/users/${user.id}`, {
+    const response = await adminFetch(`/api/admin/users/${user.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ role }),
@@ -40,7 +41,7 @@ export default function UsersClient({ initialUsers }: { initialUsers: AdminUser[
   }
 
   async function inviteUser() {
-    const response = await fetch('/api/admin/users', {
+    const response = await adminFetch('/api/admin/users', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form),
@@ -56,7 +57,7 @@ export default function UsersClient({ initialUsers }: { initialUsers: AdminUser[
 
   async function handleDelete() {
     if (!deleteTarget) return;
-    const response = await fetch(`/api/admin/users/${deleteTarget.id}`, { method: 'DELETE' });
+    const response = await adminFetch(`/api/admin/users/${deleteTarget.id}`, { method: 'DELETE' });
     if (response.ok) {
       setUsers((prev) => prev.filter((u) => u.id !== deleteTarget.id));
       router.refresh();

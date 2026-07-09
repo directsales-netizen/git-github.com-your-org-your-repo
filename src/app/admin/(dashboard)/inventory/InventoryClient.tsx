@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { adminFetch } from '@/lib/admin/adminFetch';
 import { useRouter } from 'next/navigation';
 import { Minus, Pencil, Plus, Trash2 } from 'lucide-react';
 import { PRODUCT_CATEGORIES, PRODUCT_GRADE_LABELS, type Product, type ProductCategory, type ProductGrade } from '@/types/product';
@@ -78,7 +79,7 @@ export default function InventoryClient({ initialProducts }: { initialProducts: 
     };
 
     try {
-      const response = await fetch(editingId ? `/api/admin/inventory/${editingId}` : '/api/admin/inventory', {
+      const response = await adminFetch(editingId ? `/api/admin/inventory/${editingId}` : '/api/admin/inventory', {
         method: editingId ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -101,7 +102,7 @@ export default function InventoryClient({ initialProducts }: { initialProducts: 
 
   async function adjustStock(product: Product, delta: number) {
     const nextStock = Math.max(0, product.stock + delta);
-    const response = await fetch(`/api/admin/inventory/${product.id}`, {
+    const response = await adminFetch(`/api/admin/inventory/${product.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ stock: nextStock }),
@@ -115,7 +116,7 @@ export default function InventoryClient({ initialProducts }: { initialProducts: 
 
   async function handleDelete() {
     if (!deleteTarget) return;
-    const response = await fetch(`/api/admin/inventory/${deleteTarget.id}`, { method: 'DELETE' });
+    const response = await adminFetch(`/api/admin/inventory/${deleteTarget.id}`, { method: 'DELETE' });
     if (response.ok) {
       setProducts((prev) => prev.filter((p) => p.id !== deleteTarget.id));
       router.refresh();

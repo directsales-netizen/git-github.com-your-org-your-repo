@@ -1,11 +1,11 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { requireAdminSession } from '@/lib/admin/getSession';
+import { requireSuperAdminSessionWithOtp } from '@/lib/admin/getSession';
 import { logActivity } from '@/lib/admin/activityLog';
 import { addTestimonial } from '@/lib/admin/content';
 import type { Testimonial } from '@/types/testimonial';
 
 export async function POST(request: NextRequest) {
-  const { session, response } = await requireAdminSession();
+  const { session, response } = await requireSuperAdminSessionWithOtp();
   if (!session) return response;
 
   const body = (await request.json()) as Omit<Testimonial, 'id'>;

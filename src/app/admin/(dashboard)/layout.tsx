@@ -2,6 +2,8 @@ import { redirect } from 'next/navigation';
 import { getAdminSession } from '@/lib/admin/getSession';
 import { getLowStockProducts } from '@/lib/api';
 import { getAllAppointments } from '@/lib/chat/appointments';
+import { getAllVisitorRequests } from '@/lib/admin/requests';
+import { REQUEST_KIND_LABELS } from '@/lib/admin/requestLabels';
 import AdminShell from '@/components/admin/AdminShell';
 import type { AdminNotification } from '@/components/admin/AdminTopbar';
 
@@ -10,16 +12,26 @@ export default async function AdminDashboardLayout({ children }: { children: Rea
   // the proxy matcher config ever drifts.
   const session = await getAdminSession();
   if (!session) redirect('/admin/login');
-  // NOTE: role is intentionally NOT gated here — admin/editor/viewer accounts
-  // still get the full dashboard. Only Visitor Analytics (a SuperAdmin-only
-  // module, see src/app/admin/(dashboard)/visitor-analytics/page.tsx) checks
-  // session.role. Don't add a dashboard-wide SuperAdmin gate here without
-  // confirming with the team — it would lock every non-SuperAdmin admin
-  // account out of unrelated modules (inventory, orders, etc).
+  // Dashboard access is restricted to SuperAdmin only — admin/editor/viewer
+  // roles exist for the illustrative Users & Roles module but cannot sign
+  // into the dashboard itself.
+  if (session.role !== 'SuperAdmin') redirect('/admin/login?error=forbidden');
 
-  const [lowStock, appointments] = await Promise.all([getLowStockProducts(), getAllAppointments()]);
+  const [lowStock, appointments, visitorRequests] = await Promise.all([
+    getLowStockProducts(),
+    getAllAppointments(),
+    getAllVisitorRequests(),
+  ]);
 
   const notifications: AdminNotification[] = [
+    ...visitorRequests
+      .filter((r) => !r.read)
+      .slice(0, 5)
+      .map((r) => ({
+        id: `request-${r.id}`,
+        message: `New ${REQUEST_KIND_LABELS[r.kind].toLowerCase()} — ${r.clientName ?? r.email ?? r.phone ?? 'visitor'} (${r.id}).`,
+        tone: 'info' as const,
+      })),
     ...lowStock.slice(0, 3).map((product) => ({
       id: `stock-${product.id}`,
       message: `${product.title} is low on stock (${product.stock} left).`,

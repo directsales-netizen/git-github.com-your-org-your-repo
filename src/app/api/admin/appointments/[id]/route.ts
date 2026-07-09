@@ -1,11 +1,11 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { requireAdminSession } from '@/lib/admin/getSession';
+import { requireSuperAdminSessionWithOtp } from '@/lib/admin/getSession';
 import { logActivity } from '@/lib/admin/activityLog';
 import { updateAppointmentStatus } from '@/lib/chat/appointments';
 import type { AppointmentStatus } from '@/types/chat';
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { session, response } = await requireAdminSession();
+  const { session, response } = await requireSuperAdminSessionWithOtp();
   if (!session) return response;
 
   const { id } = await params;
