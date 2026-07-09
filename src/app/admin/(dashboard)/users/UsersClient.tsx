@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { adminFetch } from '@/lib/admin/adminFetch';
+import { adminFetch, extractAdminErrorMessage } from '@/lib/admin/adminFetch';
 import { useRouter } from 'next/navigation';
 import { Trash2 } from 'lucide-react';
 import type { AdminRole, AdminUser } from '@/types/admin';
@@ -26,8 +26,11 @@ export default function UsersClient({ initialUsers }: { initialUsers: AdminUser[
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [form, setForm] = useState({ name: '', email: '', role: 'viewer' as AdminRole });
   const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
+  const [listError, setListError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
 
   async function updateRole(user: AdminUser, role: AdminRole) {
+    setListError(null);
     const response = await adminFetch(`/api/admin/users/${user.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -37,10 +40,13 @@ export default function UsersClient({ initialUsers }: { initialUsers: AdminUser[
       const updated: AdminUser = await response.json();
       setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
       router.refresh();
+    } else {
+      setListError(await extractAdminErrorMessage(response, `Unable to update ${user.name}.`));
     }
   }
 
   async function inviteUser() {
+    setFormError(null);
     const response = await adminFetch('/api/admin/users', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -52,15 +58,20 @@ export default function UsersClient({ initialUsers }: { initialUsers: AdminUser[
       setForm({ name: '', email: '', role: 'viewer' });
       setDrawerOpen(false);
       router.refresh();
+    } else {
+      setFormError(await extractAdminErrorMessage(response, 'Unable to invite user.'));
     }
   }
 
   async function handleDelete() {
     if (!deleteTarget) return;
+    setListError(null);
     const response = await adminFetch(`/api/admin/users/${deleteTarget.id}`, { method: 'DELETE' });
     if (response.ok) {
       setUsers((prev) => prev.filter((u) => u.id !== deleteTarget.id));
       router.refresh();
+    } else {
+      setListError(await extractAdminErrorMessage(response, 'Unable to remove user.'));
     }
     setDeleteTarget(null);
   }
@@ -92,10 +103,12 @@ export default function UsersClient({ initialUsers }: { initialUsers: AdminUser[
   return (
     <>
       <div className="flex justify-end">
-        <button type="button" onClick={() => setDrawerOpen(true)} className={cn(buttonVariants.primary, spacing.buttonPadding, accessibility.focusRing, 'text-body-sm')}>
+        <button type="button" onClick={() => { setFormError(null); setDrawerOpen(true); }} className={cn(buttonVariants.primary, spacing.buttonPadding, accessibility.focusRing, 'text-body-sm')}>
           Invite User
         </button>
       </div>
+
+      {listError && <p className="mb-3 text-body-sm font-body text-error">{listError}</p>}
 
       <DataTable
         columns={columns}
@@ -131,6 +144,7 @@ export default function UsersClient({ initialUsers }: { initialUsers: AdminUser[
           <TextField id="u-name" label="Name" value={form.name} onChange={(v) => setForm((f) => ({ ...f, name: v }))} required />
           <TextField id="u-email" label="Email" type="email" value={form.email} onChange={(v) => setForm((f) => ({ ...f, email: v }))} required />
           <SelectField id="u-role" label="Role" value={form.role} onChange={(v) => setForm((f) => ({ ...f, role: v as AdminRole }))} options={ROLE_OPTIONS.map((r) => ({ label: r, value: r }))} />
+          {formError && <p className="text-body-sm font-body text-error">{formError}</p>}
         </div>
       </Drawer>
 

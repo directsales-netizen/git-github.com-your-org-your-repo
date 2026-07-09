@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import type { LiveConversation } from '@/types/admin';
 import type { ChatMessage } from '@/types/chat';
-import { adminFetch } from '@/lib/admin/adminFetch';
+import { adminFetch, extractAdminErrorMessage } from '@/lib/admin/adminFetch';
 import { buttonVariants, cardVariants, cn, spacing, inputVariants } from '@/design';
 import StatusBadge from '@/components/admin/StatusBadge';
 import MessageBubble from '@/components/chat/MessageBubble';
@@ -32,6 +32,7 @@ export default function LiveChatDetailClient({
   const [draft, setDraft] = useState('');
   const [isTakingOver, setIsTakingOver] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // No existing live-refresh infra in this codebase (see liveChatStore.ts) —
@@ -53,10 +54,13 @@ export default function LiveChatDetailClient({
 
   async function takeOver() {
     setIsTakingOver(true);
+    setError(null);
     const res = await adminFetch(`/api/admin/chatbot/live/${visitorId}/takeover`, { method: 'POST' });
     if (res.ok) {
       const data: { conversation: LiveConversation } = await res.json();
       setConversation(data.conversation);
+    } else {
+      setError(await extractAdminErrorMessage(res, 'Unable to take over this conversation.'));
     }
     setIsTakingOver(false);
   }
@@ -65,6 +69,7 @@ export default function LiveChatDetailClient({
     const text = draft.trim();
     if (!text) return;
     setIsSending(true);
+    setError(null);
     const res = await adminFetch(`/api/admin/chatbot/live/${visitorId}/reply`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -77,6 +82,8 @@ export default function LiveChatDetailClient({
         const data: { conversation: LiveConversation } = await refreshed.json();
         setConversation(data.conversation);
       }
+    } else {
+      setError(await extractAdminErrorMessage(res, 'Unable to send reply.'));
     }
     setIsSending(false);
   }
@@ -144,6 +151,7 @@ export default function LiveChatDetailClient({
             Send
           </button>
         </div>
+        {error && <p className="text-body-sm font-body text-error">{error}</p>}
       </div>
     </div>
   );

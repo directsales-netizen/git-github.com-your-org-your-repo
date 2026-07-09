@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { adminFetch } from '@/lib/admin/adminFetch';
+import { adminFetch, extractAdminErrorMessage } from '@/lib/admin/adminFetch';
 import { useRouter } from 'next/navigation';
 import type { AppointmentStatus, AppointmentSummary } from '@/types/chat';
 import { APPOINTMENT_TYPE_LABELS } from '@/lib/chat/appointments';
@@ -28,8 +28,10 @@ const STATUS_LABEL: Record<AppointmentStatus, string> = {
 export default function AppointmentsClient({ initialAppointments }: { initialAppointments: AppointmentSummary[] }) {
   const router = useRouter();
   const [appointments, setAppointments] = useState(initialAppointments);
+  const [error, setError] = useState<string | null>(null);
 
   async function updateStatus(appointment: AppointmentSummary, status: AppointmentStatus) {
+    setError(null);
     const response = await adminFetch(`/api/admin/appointments/${appointment.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -39,6 +41,8 @@ export default function AppointmentsClient({ initialAppointments }: { initialApp
       const updated: AppointmentSummary = await response.json();
       setAppointments((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
       router.refresh();
+    } else {
+      setError(await extractAdminErrorMessage(response, `Unable to update ${appointment.id}.`));
     }
   }
 
@@ -72,14 +76,17 @@ export default function AppointmentsClient({ initialAppointments }: { initialApp
   ];
 
   return (
-    <DataTable
-      columns={columns}
-      rows={appointments}
-      getRowId={(a) => a.id}
-      searchable
-      searchPlaceholder="Search appointments…"
-      searchKeys={['id', 'contactMethod']}
-      emptyMessage="No appointments yet."
-    />
+    <div className="flex flex-col gap-3">
+      {error && <p className="text-body-sm font-body text-error">{error}</p>}
+      <DataTable
+        columns={columns}
+        rows={appointments}
+        getRowId={(a) => a.id}
+        searchable
+        searchPlaceholder="Search appointments…"
+        searchKeys={['id', 'contactMethod']}
+        emptyMessage="No appointments yet."
+      />
+    </div>
   );
 }

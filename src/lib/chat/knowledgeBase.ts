@@ -85,7 +85,7 @@ export const KNOWLEDGE_BASE: Record<KnowledgeTopic, KnowledgeEntry> = {
   'contact-info': {
     patterns: [/contact/i, /phone number/i, /email (you|address)/i, /reach (you|someone)/i],
     response:
-      'You can reach our support team at support@premiumtechnoir.com or through this chat any time. If you\'d like a callback instead, just say "I\'d like someone to call me" and I\'ll get that set up.',
+      'You can reach our support team at directsales@premiumtechnoir.org, by phone at (786) 984-2420, or through this chat any time. If you\'d like a callback instead, just say "I\'d like someone to call me" and I\'ll get that set up.',
   },
   sustainability: {
     patterns: [/sustainab/i, /environment/i, /e-?waste/i, /recycl/i],

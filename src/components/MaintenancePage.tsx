@@ -22,8 +22,8 @@ export default function MaintenancePage() {
         </p>
         <p className="mt-6 text-body-sm font-body text-neutral-silver">
           Need help right now? Reach our support team at{' '}
-          <a href="mailto:support@premiumtechnoir.com" className="font-semibold text-accent-primary hover:underline">
-            support@premiumtechnoir.com
+          <a href="mailto:directsales@premiumtechnoir.org" className="font-semibold text-accent-primary hover:underline">
+            directsales@premiumtechnoir.org
           </a>
           .
         </p>

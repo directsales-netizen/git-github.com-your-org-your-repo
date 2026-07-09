@@ -19,9 +19,16 @@ export default async function StorefrontLayout({ children }: { children: React.R
   // in via a completely separate cookie/session (src/lib/admin/session.ts)
   // and see the site normally, so the team can verify things during the
   // window. /admin/* itself lives under a different layout entirely and is
-  // never affected by this check either way.
+  // never affected by this check either way. The chat widget stays available
+  // (opt-in, same as always — visitors still have to click to open it) so a
+  // visitor isn't fully locked out of reaching support during the window.
   if (settings.maintenanceMode && !adminSession) {
-    return <MaintenancePage />;
+    return (
+      <>
+        <MaintenancePage />
+        <ChatWidget />
+      </>
+    );
   }
 
   return (

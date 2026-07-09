@@ -32,3 +32,9 @@ export async function adminFetch(input: RequestInfo | URL, init?: RequestInit): 
 
   return fetch(input, init);
 }
+
+/** Shared with the callers of adminFetch() so a failed mutation (OTP cancelled, wrong PIN, validation error, etc.) surfaces a real message instead of failing silently. */
+export async function extractAdminErrorMessage(response: Response, fallback = 'Something went wrong. Please try again.'): Promise<string> {
+  const body = await response.json().catch(() => null);
+  return body?.error ?? fallback;
+}

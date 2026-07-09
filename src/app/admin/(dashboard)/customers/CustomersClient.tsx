@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { adminFetch } from '@/lib/admin/adminFetch';
+import { adminFetch, extractAdminErrorMessage } from '@/lib/admin/adminFetch';
 import { useRouter } from 'next/navigation';
 import { Ban, CheckCircle2 } from 'lucide-react';
 import type { Customer } from '@/types/admin';
@@ -12,8 +12,10 @@ import StatusBadge from '@/components/admin/StatusBadge';
 export default function CustomersClient({ initialCustomers }: { initialCustomers: Customer[] }) {
   const router = useRouter();
   const [customers, setCustomers] = useState(initialCustomers);
+  const [error, setError] = useState<string | null>(null);
 
   async function toggleStatus(customer: Customer) {
+    setError(null);
     const nextStatus = customer.status === 'active' ? 'blocked' : 'active';
     const response = await adminFetch(`/api/admin/customers/${customer.id}`, {
       method: 'PATCH',
@@ -24,6 +26,8 @@ export default function CustomersClient({ initialCustomers }: { initialCustomers
       const updated: Customer = await response.json();
       setCustomers((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
       router.refresh();
+    } else {
+      setError(await extractAdminErrorMessage(response, `Unable to update ${customer.name}.`));
     }
   }
 
@@ -42,24 +46,27 @@ export default function CustomersClient({ initialCustomers }: { initialCustomers
   ];
 
   return (
-    <DataTable
-      columns={columns}
-      rows={customers}
-      getRowId={(c) => c.id}
-      searchable
-      searchPlaceholder="Search customers…"
-      searchKeys={['name', 'email']}
-      emptyMessage="No customers yet."
-      rowActions={(c) => (
-        <button
-          type="button"
-          onClick={() => toggleStatus(c)}
-          aria-label={c.status === 'active' ? `Block ${c.name}` : `Unblock ${c.name}`}
-          className={cn('rounded-md p-1.5 text-neutral-silver hover:text-accent-primary', accessibility.focusRing)}
-        >
-          {c.status === 'active' ? <Ban size={14} aria-hidden="true" /> : <CheckCircle2 size={14} aria-hidden="true" />}
-        </button>
-      )}
-    />
+    <div className="flex flex-col gap-3">
+      {error && <p className="text-body-sm font-body text-error">{error}</p>}
+      <DataTable
+        columns={columns}
+        rows={customers}
+        getRowId={(c) => c.id}
+        searchable
+        searchPlaceholder="Search customers…"
+        searchKeys={['name', 'email']}
+        emptyMessage="No customers yet."
+        rowActions={(c) => (
+          <button
+            type="button"
+            onClick={() => toggleStatus(c)}
+            aria-label={c.status === 'active' ? `Block ${c.name}` : `Unblock ${c.name}`}
+            className={cn('rounded-md p-1.5 text-neutral-silver hover:text-accent-primary', accessibility.focusRing)}
+          >
+            {c.status === 'active' ? <Ban size={14} aria-hidden="true" /> : <CheckCircle2 size={14} aria-hidden="true" />}
+          </button>
+        )}
+      />
+    </div>
   );
 }

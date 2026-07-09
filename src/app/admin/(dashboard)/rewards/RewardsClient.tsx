@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { adminFetch } from '@/lib/admin/adminFetch';
+import { adminFetch, extractAdminErrorMessage } from '@/lib/admin/adminFetch';
 import { useRouter } from 'next/navigation';
 import { Minus, Plus } from 'lucide-react';
 import type { LoyaltyMember, LoyaltyRules } from '@/types/admin';
@@ -22,8 +22,11 @@ export default function RewardsClient({ initialMembers, initialRules }: { initia
   const [members, setMembers] = useState(initialMembers);
   const [rules, setRules] = useState(initialRules);
   const [isSaving, setIsSaving] = useState(false);
+  const [membersError, setMembersError] = useState<string | null>(null);
+  const [rulesError, setRulesError] = useState<string | null>(null);
 
   async function adjustPoints(member: LoyaltyMember, delta: number) {
+    setMembersError(null);
     const response = await adminFetch(`/api/admin/rewards/members/${member.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -33,11 +36,14 @@ export default function RewardsClient({ initialMembers, initialRules }: { initia
       const updated: LoyaltyMember = await response.json();
       setMembers((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
       router.refresh();
+    } else {
+      setMembersError(await extractAdminErrorMessage(response, `Unable to update ${member.name}.`));
     }
   }
 
   async function saveRules() {
     setIsSaving(true);
+    setRulesError(null);
     const response = await adminFetch('/api/admin/rewards/rules', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -46,6 +52,8 @@ export default function RewardsClient({ initialMembers, initialRules }: { initia
     if (response.ok) {
       setRules(await response.json());
       router.refresh();
+    } else {
+      setRulesError(await extractAdminErrorMessage(response, 'Unable to save rules.'));
     }
     setIsSaving(false);
   }
@@ -60,6 +68,7 @@ export default function RewardsClient({ initialMembers, initialRules }: { initia
 
   return (
     <div className="flex flex-col gap-6">
+      {membersError && <p className="text-body-sm font-body text-error">{membersError}</p>}
       <DataTable
         columns={columns}
         rows={members}
@@ -92,6 +101,7 @@ export default function RewardsClient({ initialMembers, initialRules }: { initia
         <button type="button" onClick={saveRules} disabled={isSaving} className={cn(buttonVariants.primary, spacing.buttonPadding, 'mt-4 text-body-sm')}>
           {isSaving ? 'Saving…' : 'Save rules'}
         </button>
+        {rulesError && <p className="mt-2 text-caption font-body text-error">{rulesError}</p>}
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { adminFetch } from '@/lib/admin/adminFetch';
+import { adminFetch, extractAdminErrorMessage } from '@/lib/admin/adminFetch';
 import { useRouter } from 'next/navigation';
 import type { OrderSummary } from '@/types/chat';
 import { inputVariants } from '@/design';
@@ -27,8 +27,10 @@ const STATUS_LABEL: Record<OrderSummary['status'], string> = {
 export default function OrdersClient({ initialOrders }: { initialOrders: OrderSummary[] }) {
   const router = useRouter();
   const [orders, setOrders] = useState(initialOrders);
+  const [error, setError] = useState<string | null>(null);
 
   async function updateStatus(order: OrderSummary, status: OrderSummary['status']) {
+    setError(null);
     const response = await adminFetch(`/api/admin/orders/${order.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -38,6 +40,8 @@ export default function OrdersClient({ initialOrders }: { initialOrders: OrderSu
       const updated: OrderSummary = await response.json();
       setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
       router.refresh();
+    } else {
+      setError(await extractAdminErrorMessage(response, `Unable to update order ${order.id}.`));
     }
   }
 
@@ -84,14 +88,17 @@ export default function OrdersClient({ initialOrders }: { initialOrders: OrderSu
   ];
 
   return (
-    <DataTable
-      columns={columns}
-      rows={orders}
-      getRowId={(o) => o.id}
-      searchable
-      searchPlaceholder="Search orders…"
-      searchKeys={['id']}
-      emptyMessage="No orders yet."
-    />
+    <div className="flex flex-col gap-3">
+      {error && <p className="text-body-sm font-body text-error">{error}</p>}
+      <DataTable
+        columns={columns}
+        rows={orders}
+        getRowId={(o) => o.id}
+        searchable
+        searchPlaceholder="Search orders…"
+        searchKeys={['id']}
+        emptyMessage="No orders yet."
+      />
+    </div>
   );
 }

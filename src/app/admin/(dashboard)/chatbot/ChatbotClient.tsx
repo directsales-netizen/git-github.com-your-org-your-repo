@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { adminFetch } from '@/lib/admin/adminFetch';
+import { adminFetch, extractAdminErrorMessage } from '@/lib/admin/adminFetch';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { ChatConversation } from '@/lib/admin/chatConversations';
@@ -15,9 +15,11 @@ export default function ChatbotClient({ conversations, initialSettings }: { conv
   const router = useRouter();
   const [settings, setSettings] = useState(initialSettings);
   const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function saveSettings() {
     setIsSaving(true);
+    setError(null);
     const response = await adminFetch('/api/admin/chatbot/settings', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -26,6 +28,8 @@ export default function ChatbotClient({ conversations, initialSettings }: { conv
     if (response.ok) {
       setSettings(await response.json());
       router.refresh();
+    } else {
+      setError(await extractAdminErrorMessage(response, 'Unable to save settings.'));
     }
     setIsSaving(false);
   }
@@ -77,6 +81,7 @@ export default function ChatbotClient({ conversations, initialSettings }: { conv
         >
           {isSaving ? 'Saving…' : 'Save settings'}
         </button>
+        {error && <p className="mt-2 text-caption font-body text-error">{error}</p>}
       </div>
     </div>
   );

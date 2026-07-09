@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { adminFetch } from '@/lib/admin/adminFetch';
+import { adminFetch, extractAdminErrorMessage } from '@/lib/admin/adminFetch';
 import { useRouter } from 'next/navigation';
 import type { BusinessSettings } from '@/types/admin';
 import { buttonVariants, cardVariants, cn, spacing } from '@/design';
@@ -12,10 +12,12 @@ export default function SettingsClient({ initialSettings }: { initialSettings: B
   const [settings, setSettings] = useState(initialSettings);
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function save() {
     setIsSaving(true);
     setSaved(false);
+    setError(null);
     const response = await adminFetch('/api/admin/settings', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -25,6 +27,8 @@ export default function SettingsClient({ initialSettings }: { initialSettings: B
       setSettings(await response.json());
       setSaved(true);
       router.refresh();
+    } else {
+      setError(await extractAdminErrorMessage(response, 'Unable to save settings.'));
     }
     setIsSaving(false);
   }
@@ -71,6 +75,7 @@ export default function SettingsClient({ initialSettings }: { initialSettings: B
           {isSaving ? 'Saving…' : 'Save settings'}
         </button>
         {saved && <span className="text-caption font-body text-success">Saved.</span>}
+        {error && <span className="text-caption font-body text-error">{error}</span>}
       </div>
     </div>
   );

@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Archive, CheckCircle2, Circle, Mail, MessageSquare, Smartphone, XCircle } from 'lucide-react';
-import { adminFetch } from '@/lib/admin/adminFetch';
+import { adminFetch, extractAdminErrorMessage } from '@/lib/admin/adminFetch';
 import type { RequestStatus, VisitorRequest, NotificationChannel, DeliveryStatus } from '@/types/admin';
 import { REQUEST_KIND_LABELS, REQUEST_STATUS_LABELS, REQUEST_PRIORITY_LABELS } from '@/lib/admin/requestLabels';
 import { accessibility, buttonVariants, cn, spacing } from '@/design';
@@ -68,6 +68,7 @@ export default function RequestsClient({ initialRequests }: { initialRequests: V
   const [assignedToDraft, setAssignedToDraft] = useState('');
   const [archiveTarget, setArchiveTarget] = useState<VisitorRequest | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const filtered = useMemo(() => (filter === 'all' ? requests : requests.filter((r) => r.status === filter)), [requests, filter]);
 
@@ -77,7 +78,11 @@ export default function RequestsClient({ initialRequests }: { initialRequests: V
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(patch),
     });
-    if (!response.ok) return null;
+    if (!response.ok) {
+      setError(await extractAdminErrorMessage(response, `Unable to update ${id}.`));
+      return null;
+    }
+    setError(null);
     const updated: VisitorRequest = await response.json();
     setRequests((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
     router.refresh();
@@ -149,6 +154,8 @@ export default function RequestsClient({ initialRequests }: { initialRequests: V
           </button>
         ))}
       </div>
+
+      {error && <p className="mt-3 text-body-sm font-body text-error">{error}</p>}
 
       <div className="mt-4">
         <DataTable

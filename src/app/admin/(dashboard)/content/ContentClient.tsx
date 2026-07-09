@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { adminFetch } from '@/lib/admin/adminFetch';
+import { adminFetch, extractAdminErrorMessage } from '@/lib/admin/adminFetch';
 import { useRouter } from 'next/navigation';
 import { Pencil, Trash2 } from 'lucide-react';
 import type { SiteContentSettings } from '@/types/admin';
@@ -26,15 +26,19 @@ export default function ContentClient({ initialContent, initialTestimonials }: {
   const router = useRouter();
   const [content, setContent] = useState(initialContent);
   const [isSavingContent, setIsSavingContent] = useState(false);
+  const [contentError, setContentError] = useState<string | null>(null);
 
   const [testimonials, setTestimonials] = useState(initialTestimonials);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<TestimonialForm>(EMPTY_TESTIMONIAL);
+  const [formError, setFormError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Testimonial | null>(null);
+  const [listError, setListError] = useState<string | null>(null);
 
   async function saveContent() {
     setIsSavingContent(true);
+    setContentError(null);
     const response = await adminFetch('/api/admin/content', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -43,6 +47,8 @@ export default function ContentClient({ initialContent, initialTestimonials }: {
     if (response.ok) {
       setContent(await response.json());
       router.refresh();
+    } else {
+      setContentError(await extractAdminErrorMessage(response, 'Unable to save content.'));
     }
     setIsSavingContent(false);
   }
@@ -50,6 +56,7 @@ export default function ContentClient({ initialContent, initialTestimonials }: {
   function openCreate() {
     setEditingId(null);
     setForm(EMPTY_TESTIMONIAL);
+    setFormError(null);
     setDrawerOpen(true);
   }
 
@@ -62,10 +69,12 @@ export default function ContentClient({ initialContent, initialTestimonials }: {
       rating: String(testimonial.rating),
       device: testimonial.device,
     });
+    setFormError(null);
     setDrawerOpen(true);
   }
 
   async function saveTestimonial() {
+    setFormError(null);
     const payload = { ...form, rating: Number(form.rating) };
     const response = await adminFetch(editingId ? `/api/admin/content/testimonials/${editingId}` : '/api/admin/content/testimonials', {
       method: editingId ? 'PATCH' : 'POST',
@@ -77,15 +86,20 @@ export default function ContentClient({ initialContent, initialTestimonials }: {
       setTestimonials((prev) => (editingId ? prev.map((t) => (t.id === saved.id ? saved : t)) : [saved, ...prev]));
       setDrawerOpen(false);
       router.refresh();
+    } else {
+      setFormError(await extractAdminErrorMessage(response, 'Unable to save testimonial.'));
     }
   }
 
   async function handleDelete() {
     if (!deleteTarget) return;
+    setListError(null);
     const response = await adminFetch(`/api/admin/content/testimonials/${deleteTarget.id}`, { method: 'DELETE' });
     if (response.ok) {
       setTestimonials((prev) => prev.filter((t) => t.id !== deleteTarget.id));
       router.refresh();
+    } else {
+      setListError(await extractAdminErrorMessage(response, 'Unable to delete testimonial.'));
     }
     setDeleteTarget(null);
   }
@@ -113,6 +127,7 @@ export default function ContentClient({ initialContent, initialTestimonials }: {
         <button type="button" onClick={saveContent} disabled={isSavingContent} className={cn(buttonVariants.primary, spacing.buttonPadding, 'mt-4 text-body-sm')}>
           {isSavingContent ? 'Saving…' : 'Save changes'}
         </button>
+        {contentError && <p className="mt-2 text-caption font-body text-error">{contentError}</p>}
       </div>
 
       <div>
@@ -122,6 +137,7 @@ export default function ContentClient({ initialContent, initialTestimonials }: {
             Add Testimonial
           </button>
         </div>
+        {listError && <p className="mt-2 text-caption font-body text-error">{listError}</p>}
         <div className="mt-3">
           <DataTable
             columns={columns}
@@ -163,6 +179,7 @@ export default function ContentClient({ initialContent, initialTestimonials }: {
           <TextField id="t-device" label="Device" value={form.device} onChange={(v) => setForm((f) => ({ ...f, device: v }))} />
           <TextField id="t-rating" label="Rating (1-5)" type="number" value={form.rating} onChange={(v) => setForm((f) => ({ ...f, rating: v }))} />
           <TextareaField id="t-quote" label="Quote" value={form.quote} onChange={(v) => setForm((f) => ({ ...f, quote: v }))} rows={4} />
+          {formError && <p className="text-body-sm font-body text-error">{formError}</p>}
         </div>
       </Drawer>
 

@@ -92,8 +92,8 @@ export default function MessageBubble({ message, onQuickReply, disabled }: Messa
                   className="rounded-md border border-secondary-primary/40 bg-secondary-primary/10 px-3 py-2 text-caption font-body text-neutral-light-gray"
                 >
                   A specialist will follow up shortly. You can also reach us any time at{' '}
-                  <a href="mailto:support@premiumtechnoir.com" className="text-accent-primary underline">
-                    support@premiumtechnoir.com
+                  <a href="mailto:directsales@premiumtechnoir.org" className="text-accent-primary underline">
+                    directsales@premiumtechnoir.org
                   </a>
                   .
                 </div>
