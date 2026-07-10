@@ -81,7 +81,18 @@ export default function ChatPanel({ chat }: ChatPanelProps) {
       )}
     >
       <div className="flex items-center justify-between border-b border-neutral-titanium/20 px-4 py-3">
-        <p className="text-body-md font-body font-semibold text-neutral-white">TechNoir Assistant</p>
+        <div className="flex flex-col">
+          <p className="text-body-md font-body font-semibold text-neutral-white">TechNoir Assistant</p>
+          {state.humanMode && (
+            <span className="flex items-center gap-1.5 text-caption font-body text-success">
+              <span className="relative flex h-2 w-2" aria-hidden="true">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
+              </span>
+              Live agent connected
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-1">
           <button
             type="button"
