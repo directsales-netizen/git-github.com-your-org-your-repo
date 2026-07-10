@@ -9,6 +9,7 @@ import { awardPointsByEmail } from '@/lib/admin/rewards';
 import { recordCustomerOrder } from '@/lib/admin/customers';
 import { sendOrderConfirmationEmail } from '@/lib/email/resend';
 import { logActivity } from '@/lib/admin/activityLog';
+import { updatePurchaseInquiry } from '@/lib/checkout/inquiries';
 
 export const runtime = 'nodejs';
 
@@ -76,6 +77,10 @@ export async function POST(request: NextRequest) {
     ]);
 
     deletePendingCheckout(session.id);
+
+    if (pending.sourceInquiryId) {
+      await updatePurchaseInquiry(pending.sourceInquiryId, { status: 'converted' });
+    }
   }
 
   markEventProcessed(event.id);

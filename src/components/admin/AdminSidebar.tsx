@@ -21,6 +21,7 @@ import {
   Radar,
   Headset,
   Inbox,
+  ClipboardCheck,
   type LucideIcon,
 } from 'lucide-react';
 import { accessibility, cn } from '@/design';
@@ -69,6 +70,7 @@ const SUPERADMIN_SECTION: NavSection = {
   label: 'SuperAdmin',
   items: [
     { label: 'Users & Roles', href: '/admin/users', icon: ShieldCheck },
+    { label: 'Purchase Inquiries', href: '/admin/purchase-inquiries', icon: ClipboardCheck },
     { label: 'Settings', href: '/admin/settings', icon: Settings },
     { label: 'Visitor Analytics', href: '/admin/visitor-analytics', icon: Radar },
     { label: 'Live Chat Takeover', href: '/admin/chatbot/live', icon: Headset },

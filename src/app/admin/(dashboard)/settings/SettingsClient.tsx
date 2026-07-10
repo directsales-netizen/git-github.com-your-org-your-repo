@@ -68,6 +68,13 @@ export default function SettingsClient({ initialSettings }: { initialSettings: B
           checked={settings.ordersPaused}
           onChange={(v) => setSettings((s) => ({ ...s, ordersPaused: v }))}
         />
+        <ToggleField
+          id="inquiryOnlyMode"
+          label="Require purchase approval"
+          description="When enabled, customers submit a purchase request instead of paying immediately — a SuperAdmin must approve it in Purchase Inquiries before a payment link is issued. Independent of pausing orders: the cart and checkout form still work, only the payment step is gated."
+          checked={settings.inquiryOnlyMode}
+          onChange={(v) => setSettings((s) => ({ ...s, inquiryOnlyMode: v }))}
+        />
       </div>
 
       <div className="mt-6 flex items-center gap-3">

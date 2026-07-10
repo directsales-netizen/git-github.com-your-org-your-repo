@@ -63,6 +63,8 @@ export interface BusinessSettings {
   requireAccountForCheckout: boolean;
   /** When true, browsing stays open but adding to cart and checkout are blocked — customers are directed to email/AI chat instead. Unlike maintenanceMode, the storefront itself stays up. */
   ordersPaused: boolean;
+  /** When true, /api/checkout/session is disabled and checkout submits a PurchaseInquiry instead — a SuperAdmin must approve it before a Stripe payment link is issued. Independent of ordersPaused: the cart and checkout form still work, only the payment step is gated. */
+  inquiryOnlyMode: boolean;
 }
 
 export interface SiteContentSettings {
@@ -211,4 +213,42 @@ export interface VisitorRequest {
   createdAt: string;
   updatedAt: string;
   deliveries: NotificationDelivery[];
+}
+
+// --- Purchase Inquiries (inquiryOnlyMode): a customer's cart submission
+// awaiting SuperAdmin approval before a real Stripe payment link is issued.
+// See src/lib/checkout/inquiries.ts and src/app/api/admin/purchase-inquiries. ---
+
+export type PurchaseInquiryStatus = 'pending' | 'approved' | 'rejected' | 'converted';
+
+export interface PurchaseInquiryItem {
+  productId: string;
+  title: string;
+  price: number;
+  quantity: number;
+}
+
+export interface PurchaseInquiryShippingAddress {
+  line1: string;
+  line2?: string;
+  city: string;
+  state: string;
+  zip: string;
+}
+
+export interface PurchaseInquiry {
+  id: string;
+  status: PurchaseInquiryStatus;
+  email: string;
+  name: string;
+  items: PurchaseInquiryItem[];
+  shippingAddress: PurchaseInquiryShippingAddress;
+  subtotal: number;
+  createdAt: string;
+  updatedAt: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  rejectionReason?: string;
+  stripeCheckoutSessionId?: string;
+  stripeCheckoutUrl?: string;
 }

@@ -1,10 +1,10 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { requireStripeConfigured } from '@/lib/stripe/client';
-import { getProductById } from '@/lib/api';
 import { getBusinessSettings } from '@/lib/admin/settings';
 import { getCustomerSession } from '@/lib/customer/getSession';
 import { findCustomerAccountByEmail, setStripeCustomerId } from '@/lib/customer/store';
-import { stashPendingCheckout, type PendingCheckoutItem } from '@/lib/checkout/pendingCheckouts';
+import { stashPendingCheckout } from '@/lib/checkout/pendingCheckouts';
+import { validateCartItems } from '@/lib/checkout/validateCartItems';
 import { createRateLimiter } from '@/lib/security/rateLimit';
 
 export const runtime = 'nodejs';
@@ -46,6 +46,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Online ordering is temporarily paused. Please email support or use the AI assistant to place an order.' }, { status: 503 });
   }
 
+  if (settings.inquiryOnlyMode) {
+    return NextResponse.json({ error: 'Direct checkout is disabled. Please submit a purchase inquiry instead.' }, { status: 503 });
+  }
+
   // Payment is only ever allowed through a verified account — there is no
   // guest checkout path, regardless of the (now-redundant but still admin-
   // editable) requireAccountForCheckout setting. Phone verification doesn't
@@ -61,39 +65,26 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Please verify your email before completing checkout.' }, { status: 403 });
   }
 
-  // --- The entire tamper-prevention mechanism lives in this loop: every
+  // --- The entire tamper-prevention mechanism lives here: every
   // price/title/stock check comes from a fresh server-side catalog lookup,
   // never from anything the client sent. Runs before the Stripe-configured
   // check so invalid cart contents are rejected with a precise 400
   // regardless of payment configuration. ---
-  const verifiedItems: PendingCheckoutItem[] = [];
-  const lineItems: { price_data: { currency: string; unit_amount: number; product_data: { name: string } }; quantity: number }[] = [];
-
-  for (const requested of items) {
-    if (!requested.productId || !Number.isFinite(requested.quantity) || requested.quantity <= 0) {
-      return NextResponse.json({ error: 'Invalid line item.' }, { status: 400 });
-    }
-
-    const product = await getProductById(requested.productId);
-    if (!product) {
-      return NextResponse.json({ error: `Product ${requested.productId} not found.` }, { status: 400 });
-    }
-    if (product.stock < requested.quantity) {
-      return NextResponse.json({ error: `${product.title} only has ${product.stock} in stock.` }, { status: 400 });
-    }
-
-    verifiedItems.push({ productId: product.id, title: product.title, price: product.price, quantity: requested.quantity });
-    lineItems.push({
-      price_data: { currency: 'usd', unit_amount: Math.round(product.price * 100), product_data: { name: product.title } },
-      quantity: requested.quantity,
-    });
+  const validation = await validateCartItems(items);
+  if (!validation.ok) {
+    return NextResponse.json({ error: validation.error }, { status: validation.status });
   }
+  const verifiedItems = validation.items;
+  const lineItems = verifiedItems.map((item) => ({
+    price_data: { currency: 'usd', unit_amount: Math.round(item.price * 100), product_data: { name: item.title } },
+    quantity: item.quantity,
+  }));
 
   const { stripe, response } = requireStripeConfigured();
   if (!stripe) return response;
 
   const origin = new URL(request.url).origin;
-  const subtotal = verifiedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const subtotal = validation.subtotal;
   const name = account.name;
 
   // Reuse the account's Stripe Customer across visits (creating it on first

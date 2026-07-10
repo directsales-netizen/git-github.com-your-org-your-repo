@@ -88,3 +88,23 @@ export async function sendOrderConfirmationEmail(
 <p>Order reference: ${orderId}</p>`,
   });
 }
+
+export async function sendInquiryApprovedEmail(email: string, inquiryId: string, checkoutUrl: string): Promise<SendEmailResult> {
+  return sendEmail({
+    to: email,
+    subject: `Your Premium TechNoir purchase request ${inquiryId} has been approved`,
+    html: `<p>Good news — your purchase request <strong>${inquiryId}</strong> has been reviewed and approved.</p>
+<p><a href="${checkoutUrl}">Complete your payment here</a> to finish your order.</p>
+<p>This link takes you to a secure Stripe payment page — we never see or store your card details.</p>`,
+  });
+}
+
+export async function sendInquiryRejectedEmail(email: string, inquiryId: string, reason: string): Promise<SendEmailResult> {
+  return sendEmail({
+    to: email,
+    subject: `An update on your Premium TechNoir purchase request ${inquiryId}`,
+    html: `<p>We reviewed your purchase request <strong>${inquiryId}</strong> and were unable to approve it.</p>
+<p><strong>Reason:</strong> ${reason}</p>
+<p>If you have questions, reply to this email or reach out to our support team.</p>`,
+  });
+}

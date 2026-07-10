@@ -6,6 +6,7 @@ import { spacing, cn } from '@/design';
 const NAV = [
   { href: '/account', label: 'Overview' },
   { href: '/account/orders', label: 'Orders' },
+  { href: '/account/purchase-inquiries', label: 'Purchase Requests' },
   { href: '/account/addresses', label: 'Addresses' },
 ];
 

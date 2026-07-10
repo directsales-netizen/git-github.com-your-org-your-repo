@@ -20,6 +20,8 @@ export interface PendingCheckout {
   };
   subtotal: number;
   createdAt: string;
+  /** Set only when this Stripe session was created via purchase-inquiry approval, so the webhook can flip the originating PurchaseInquiry to 'converted'. */
+  sourceInquiryId?: string;
 }
 
 /**

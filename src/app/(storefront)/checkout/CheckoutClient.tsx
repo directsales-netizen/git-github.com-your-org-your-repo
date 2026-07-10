@@ -11,15 +11,27 @@ interface Props {
   prefillEmail?: string;
   requireAccount: boolean;
   ordersPaused: boolean;
+  inquiryOnlyMode: boolean;
   supportEmail: string;
 }
 
-export default function CheckoutClient({ isAuthenticated, prefillEmail, requireAccount, ordersPaused, supportEmail }: Props) {
+export default function CheckoutClient({ isAuthenticated, prefillEmail, requireAccount, ordersPaused, inquiryOnlyMode, supportEmail }: Props) {
   const { items, subtotal } = useCart();
   const [email, setEmail] = useState(prefillEmail ?? '');
   const [address, setAddress] = useState({ line1: '', line2: '', city: '', state: '', zip: '' });
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submittedInquiryId, setSubmittedInquiryId] = useState<string | null>(null);
+
+  if (submittedInquiryId) {
+    return (
+      <EmptyState
+        title="Purchase request submitted"
+        description={`Reference ${submittedInquiryId}. Our team will review your request and email you a secure payment link once it's approved.`}
+        action={<Link href="/account/purchase-inquiries" className={cn(buttonVariants.primary, spacing.buttonPadding, 'text-body-sm')}>View My Requests</Link>}
+      />
+    );
+  }
 
   if (ordersPaused) {
     return (
@@ -60,6 +72,29 @@ export default function CheckoutClient({ isAuthenticated, prefillEmail, requireA
     event.preventDefault();
     setError(null);
     setIsSubmitting(true);
+
+    if (inquiryOnlyMode) {
+      const response = await fetch('/api/checkout/inquiry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: items.map((item) => ({ productId: item.productId, quantity: item.quantity })),
+          shippingAddress: address,
+        }),
+      });
+
+      const data = (await response.json().catch(() => null)) as { inquiry?: { id: string }; error?: string } | null;
+
+      if (!response.ok || !data?.inquiry) {
+        setError(data?.error ?? 'Something went wrong submitting your purchase request.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      setSubmittedInquiryId(data.inquiry.id);
+      setIsSubmitting(false);
+      return;
+    }
 
     const response = await fetch('/api/checkout/session', {
       method: 'POST',
@@ -131,7 +166,9 @@ export default function CheckoutClient({ isAuthenticated, prefillEmail, requireA
       {error && <p role="alert" className="text-body-sm font-body text-error">{error}</p>}
 
       <button type="submit" disabled={isSubmitting} className={cn(buttonVariants.primary, spacing.buttonPadding, 'text-body-md')}>
-        {isSubmitting ? 'Redirecting to payment…' : 'Continue to Payment'}
+        {inquiryOnlyMode
+          ? isSubmitting ? 'Submitting…' : 'Submit Purchase Request'
+          : isSubmitting ? 'Redirecting to payment…' : 'Continue to Payment'}
       </button>
     </form>
   );

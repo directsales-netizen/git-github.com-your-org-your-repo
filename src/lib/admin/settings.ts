@@ -12,6 +12,7 @@ const settingsBox = globalBox('businessSettings', (): BusinessSettings => ({
   maintenanceMode: false,
   requireAccountForCheckout: false,
   ordersPaused: true,
+  inquiryOnlyMode: false,
 }));
 
 export async function getBusinessSettings(): Promise<BusinessSettings> {

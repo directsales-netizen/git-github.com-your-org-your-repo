@@ -21,6 +21,7 @@ export default async function CheckoutPage() {
           prefillEmail={session?.sub}
           requireAccount={settings.requireAccountForCheckout}
           ordersPaused={settings.ordersPaused}
+          inquiryOnlyMode={settings.inquiryOnlyMode}
           supportEmail={settings.supportEmail}
         />
       </div>
