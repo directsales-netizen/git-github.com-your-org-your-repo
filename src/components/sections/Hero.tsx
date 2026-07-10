@@ -1,9 +1,15 @@
 'use client';
 
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { motion, useReducedMotion } from 'framer-motion';
 import { ShieldCheck } from 'lucide-react';
 import { buttonVariants, cn, flex, spacing } from '@/design';
+
+// Client-only: mounts a WebGL canvas, so it must never run during SSR (and
+// shouldn't block the server-rendered headline/CTA, which are what matters
+// for LCP — the shader is purely decorative and paints in behind them).
+const HeroShaderBackground = dynamic(() => import('./HeroShaderBackground'), { ssr: false });
 
 interface HeroProps {
   headline?: string;
@@ -37,12 +43,18 @@ export default function Hero({
 
   return (
     <section className="relative overflow-hidden bg-gradient-to-b from-bg-secondary to-bg-primary">
+      <div className="absolute inset-0 opacity-40">
+        <HeroShaderBackground reducedMotion={Boolean(prefersReducedMotion)} />
+      </div>
+      {/* Scrim over the shader so headline/subheadline text keeps WCAG AA contrast regardless of what the gradient is doing underneath. */}
+      <div className="absolute inset-0 bg-gradient-to-b from-bg-primary/70 via-bg-primary/40 to-bg-primary" />
+
       {promoBannerEnabled && promoBannerText && (
-        <div className="bg-accent-primary px-4 py-2 text-center text-caption font-body font-semibold text-bg-primary">
+        <div className="relative bg-accent-primary px-4 py-2 text-center text-caption font-body font-semibold text-bg-primary">
           {promoBannerText}
         </div>
       )}
-      <div className={cn(spacing.containerPadding, 'mx-auto grid max-w-[1440px] grid-cols-1 items-center gap-12 py-20 tablet:py-24 desktop:grid-cols-2 desktop:py-32')}>
+      <div className={cn(spacing.containerPadding, 'relative mx-auto grid max-w-[1440px] grid-cols-1 items-center gap-12 py-20 tablet:py-24 desktop:grid-cols-2 desktop:py-32')}>
         <motion.div
           initial={fadeUp.initial}
           animate={fadeUp.animate}
