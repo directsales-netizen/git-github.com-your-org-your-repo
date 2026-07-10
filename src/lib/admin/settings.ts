@@ -11,8 +11,8 @@ const settingsBox = globalBox('businessSettings', (): BusinessSettings => ({
   taxRatePercent: 8.25,
   maintenanceMode: false,
   requireAccountForCheckout: false,
-  ordersPaused: true,
-  inquiryOnlyMode: false,
+  ordersPaused: false,
+  inquiryOnlyMode: true,
 }));
 
 export async function getBusinessSettings(): Promise<BusinessSettings> {
