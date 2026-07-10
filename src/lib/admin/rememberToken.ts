@@ -1,27 +1,26 @@
 /**
- * Edge-safe session signing/verification (Web Crypto only — no `node:crypto`,
- * since this module is imported by src/middleware.ts, which runs on the Edge
- * runtime). Credential hashing (scrypt) lives in src/lib/admin/auth.ts, a
- * separate Node-only module never imported here or by middleware.
+ * Edge-safe "keep me logged in" refresh-token signing/verification (Web
+ * Crypto only — no `node:crypto`, since this module is imported by
+ * src/proxy.ts, which runs on the Edge runtime). Deliberately a separate
+ * codec from src/lib/admin/session.ts rather than a shared one, following
+ * the same convention src/lib/customer/session.ts already established —
+ * duplicates the ~30-line HMAC codec instead of risking a shared
+ * abstraction drifting the access-token path.
+ *
+ * This token is long-lived (30 days) and optional — only issued when the
+ * admin checks "Keep me logged in" at login. It carries a `sid` (session
+ * id), which is the revocation handle checked against the in-memory
+ * registry in src/lib/admin/sessionRegistry.ts.
  */
 
-export const ADMIN_SESSION_COOKIE = 'ptn_admin_session';
-export const SESSION_TTL_SECONDS = 8 * 60 * 60; // 8 hours
+import type { SessionRole } from './session';
 
-export type SessionRole = 'SuperAdmin' | 'admin' | 'editor' | 'viewer';
+export const ADMIN_REMEMBER_COOKIE = 'ptn_admin_remember';
+export const REMEMBER_TTL_SECONDS = 30 * 24 * 60 * 60; // 30 days
 
-export interface SessionPayload {
-  sub: string;
+export interface RememberPayload {
+  sub: string; // email
   role: SessionRole;
-  /**
-   * Same id the "remember me" refresh token carries when one exists — the
-   * revocation handle checked against src/lib/admin/sessionRegistry.ts on
-   * every request in src/proxy.ts, not just at silent-refresh time. Tokens
-   * signed before this field existed simply have it undefined at runtime
-   * despite the type; every read site treats a missing/unknown sid as "not
-   * revoked" (same convention as sessionRegistry.ts's missing-record case),
-   * so old sessions degrade gracefully rather than breaking.
-   */
   sid: string;
   iat: number;
   exp: number;
@@ -35,7 +34,7 @@ function getSecret(): string {
     throw new Error('SESSION_SECRET environment variable is required in production.');
   }
   console.warn(
-    '[admin/session] SESSION_SECRET is not set — using an insecure development fallback. Set SESSION_SECRET before deploying.'
+    '[admin/rememberToken] SESSION_SECRET is not set — using an insecure development fallback. Set SESSION_SECRET before deploying.'
   );
   return 'dev-insecure-secret-do-not-use-in-production';
 }
@@ -56,18 +55,22 @@ function fromBase64Url(value: string): Uint8Array<ArrayBuffer> {
 }
 
 async function getHmacKey(): Promise<CryptoKey> {
+  // Distinct key material from the access-token and customer codecs
+  // (":remember" suffix) even though all three derive from the same
+  // SESSION_SECRET — a token signed for one cookie namespace can never
+  // verify as another.
   return crypto.subtle.importKey(
     'raw',
-    new TextEncoder().encode(getSecret()),
+    new TextEncoder().encode(`${getSecret()}:remember`),
     { name: 'HMAC', hash: 'SHA-256' },
     false,
     ['sign', 'verify']
   );
 }
 
-export async function signSession(email: string, role: SessionRole, sid: string): Promise<string> {
+export async function signRememberToken(email: string, role: SessionRole, sid: string): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
-  const payload: SessionPayload = { sub: email, role, sid, iat: now, exp: now + SESSION_TTL_SECONDS };
+  const payload: RememberPayload = { sub: email, role, sid, iat: now, exp: now + REMEMBER_TTL_SECONDS };
   const payloadB64 = toBase64Url(new TextEncoder().encode(JSON.stringify(payload)));
 
   const key = await getHmacKey();
@@ -76,7 +79,7 @@ export async function signSession(email: string, role: SessionRole, sid: string)
   return `${payloadB64}.${toBase64Url(signature)}`;
 }
 
-export async function verifySessionToken(token: string | undefined | null): Promise<SessionPayload | null> {
+export async function verifyRememberToken(token: string | undefined | null): Promise<RememberPayload | null> {
   if (!token) return null;
   const [payloadB64, signatureB64] = token.split('.');
   if (!payloadB64 || !signatureB64) return null;
@@ -91,12 +94,9 @@ export async function verifySessionToken(token: string | undefined | null): Prom
     );
     if (!valid) return null;
 
-    const payload = JSON.parse(new TextDecoder().decode(fromBase64Url(payloadB64))) as SessionPayload;
+    const payload = JSON.parse(new TextDecoder().decode(fromBase64Url(payloadB64))) as RememberPayload;
     if (typeof payload.exp !== 'number' || payload.exp < Math.floor(Date.now() / 1000)) return null;
-    // Sessions signed before role was added carry no role — treat as plain
-    // admin so they still work, but they won't see SuperAdmin-only features
-    // until the user logs in again and gets a role-bearing token.
-    if (!payload.role) payload.role = 'admin';
+    if (!payload.sid || !payload.sub || !payload.role) return null;
     return payload;
   } catch {
     return null;

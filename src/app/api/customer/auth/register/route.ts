@@ -45,7 +45,10 @@ export async function POST(request: NextRequest) {
 
   const token = createVerificationToken(email);
   const origin = new URL(request.url).origin;
-  await sendVerificationEmail(email, token, origin);
+  const emailResult = await sendVerificationEmail(email, token, origin);
+  if (!emailResult.sent) {
+    console.warn(`[register] verification email not sent to ${email}: ${emailResult.reason}`);
+  }
 
   const sessionToken = await signCustomerSession(result.account.email);
   const response = NextResponse.json({ ok: true, email: result.account.email, name: result.account.name });

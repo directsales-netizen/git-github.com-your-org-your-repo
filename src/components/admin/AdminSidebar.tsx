@@ -20,6 +20,7 @@ import {
   History,
   Radar,
   Headset,
+  MonitorSmartphone,
   Inbox,
   ClipboardCheck,
   type LucideIcon,
@@ -62,7 +63,10 @@ const NAV_SECTIONS: NavSection[] = [
   { label: 'Site', items: [{ label: 'Content', href: '/admin/content', icon: FileText }] },
   {
     label: 'System',
-    items: [{ label: 'Activity Logs', href: '/admin/logs', icon: History }],
+    items: [
+      { label: 'Activity Logs', href: '/admin/logs', icon: History },
+      { label: 'Active Sessions', href: '/admin/sessions', icon: MonitorSmartphone },
+    ],
   },
 ];
 

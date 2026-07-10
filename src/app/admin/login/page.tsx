@@ -5,12 +5,14 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Lock } from 'lucide-react';
 import { accessibility, buttonVariants, cn, inputVariants, spacing } from '@/design';
 import Logo from '@/components/Logo';
+import { ToggleField } from '@/components/admin/FormFields';
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -23,7 +25,7 @@ function LoginForm() {
       const response = await fetch('/api/admin/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, rememberMe }),
       });
 
       if (!response.ok) {
@@ -81,6 +83,13 @@ function LoginForm() {
               className={inputVariants.base}
             />
           </div>
+
+          <ToggleField
+            id="rememberMe"
+            label="Keep me logged in on this device"
+            checked={rememberMe}
+            onChange={setRememberMe}
+          />
 
           {error && (
             <p role="alert" className="text-body-sm font-body text-error">
