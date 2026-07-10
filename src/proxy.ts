@@ -1,7 +1,10 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { ADMIN_SESSION_COOKIE, SESSION_TTL_SECONDS, signSession, verifySessionToken } from '@/lib/admin/session';
+import { ADMIN_SESSION_COOKIE, getSessionTtlSeconds, signSession, verifySessionToken } from '@/lib/admin/session';
 import { ADMIN_REMEMBER_COOKIE, REMEMBER_TTL_SECONDS, signRememberToken, verifyRememberToken } from '@/lib/admin/rememberToken';
 import { getRevokedBefore, getSessionRecord, isRevoked, recordSession, revokeSession } from '@/lib/admin/sessionRegistry';
+import { getSecuritySettings } from '@/lib/admin/securitySettings';
+import { checkIpAccess } from '@/lib/admin/ipAccess';
+import { getRequestIp } from '@/lib/admin/visitorIntel';
 import { CUSTOMER_SESSION_COOKIE, verifyCustomerSessionToken } from '@/lib/customer/session';
 
 export const config = {
@@ -26,14 +29,14 @@ function isPublicCustomerPath(pathname: string): boolean {
   return PUBLIC_CUSTOMER_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
 }
 
-function setAdminCookies(response: NextResponse, accessToken: string, rememberToken: string): void {
+async function setAdminCookies(response: NextResponse, accessToken: string, rememberToken: string): Promise<void> {
   const secure = process.env.NODE_ENV === 'production';
   response.cookies.set(ADMIN_SESSION_COOKIE, accessToken, {
     httpOnly: true,
     secure,
     sameSite: 'lax',
     path: '/',
-    maxAge: SESSION_TTL_SECONDS,
+    maxAge: await getSessionTtlSeconds(),
   });
   response.cookies.set(ADMIN_REMEMBER_COOKIE, rememberToken, {
     httpOnly: true,
@@ -65,7 +68,7 @@ async function tryRefreshAdminSession(request: NextRequest): Promise<NextRespons
 
   const newSid = crypto.randomUUID();
   const [newAccessToken, newRememberToken] = await Promise.all([
-    signSession(payload.sub, payload.role),
+    signSession(payload.sub, payload.role, newSid),
     signRememberToken(payload.sub, payload.role, newSid),
   ]);
 
@@ -88,7 +91,7 @@ async function tryRefreshAdminSession(request: NextRequest): Promise<NextRespons
   request.cookies.set(ADMIN_REMEMBER_COOKIE, newRememberToken);
 
   const response = NextResponse.next({ request });
-  setAdminCookies(response, newAccessToken, newRememberToken);
+  await setAdminCookies(response, newAccessToken, newRememberToken);
   return response;
 }
 
@@ -118,14 +121,40 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  const isAdminPath = pathname.startsWith('/admin') || pathname.startsWith('/api/admin');
+  if (isAdminPath) {
+    // Covers every admin path, including /admin/login and /api/admin/auth/login
+    // themselves — a block-list that doesn't stop probing of the login
+    // endpoint isn't much of a block-list. Checked before isPublicPath so
+    // nothing admin-related is reachable from a blocked IP.
+    const securitySettings = await getSecuritySettings();
+    const ip = getRequestIp(request.headers);
+    if (checkIpAccess(ip, securitySettings) === 'blocked') {
+      if (pathname.startsWith('/api/admin')) {
+        return NextResponse.json({ error: 'Access denied.' }, { status: 403 });
+      }
+      return new NextResponse('Access denied from this network.', { status: 403 });
+    }
+  }
+
   if (isPublicPath(pathname)) {
     return NextResponse.next();
   }
 
   const token = request.cookies.get(ADMIN_SESSION_COOKIE)?.value;
   const session = await verifySessionToken(token);
+  // A session that verifies (valid signature, not expired) can still have
+  // been explicitly revoked (Active Sessions page) or blanket-revoked (Log
+  // out of all devices) since it was issued — this is what makes those
+  // actions take effect immediately instead of waiting for the access token
+  // to naturally expire (previously up to 8h later). Missing/unknown sid
+  // (tokens signed before this field existed) is treated as "not revoked",
+  // same convention as sessionRegistry.ts's own missing-record case.
+  const isSessionValid = Boolean(
+    session && !isRevoked(session.sid) && session.iat * 1000 >= getRevokedBefore(session.sub)
+  );
 
-  if (!session) {
+  if (!isSessionValid) {
     const refreshed = await tryRefreshAdminSession(request);
     if (refreshed) return refreshed;
 

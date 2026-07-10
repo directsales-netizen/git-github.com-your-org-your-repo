@@ -4,7 +4,7 @@ export type ChatRole = 'user' | 'assistant';
 
 export interface OrderSummary {
   id: string;
-  status: 'processing' | 'shipped' | 'out-for-delivery' | 'delivered';
+  status: 'processing' | 'shipped' | 'out-for-delivery' | 'delivered' | 'cancelled';
   items: { title: string; price: number; quantity?: number; productId?: string }[];
   placedDate: string;
   estimatedDelivery: string;

@@ -19,6 +19,7 @@ export interface CreateRequestInput {
   phone?: string;
   source: string;
   message: string;
+  orderId?: string;
 }
 
 export async function createVisitorRequest(input: CreateRequestInput): Promise<VisitorRequest> {
@@ -33,6 +34,7 @@ export async function createVisitorRequest(input: CreateRequestInput): Promise<V
     phone: input.phone,
     source: input.source,
     message: input.message,
+    orderId: input.orderId,
     read: false,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),

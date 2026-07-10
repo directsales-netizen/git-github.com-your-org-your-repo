@@ -1,7 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(pkill -f \"next dev\")",
+      "Bash(ADMIN_EMAIL=\"qa-test@premiumtechnoir.org\" ADMIN_PASSWORD_HASH=\"8b714a8b564150f3c11d01417f7ff994:0773a4d0993cdede2d35a8ae9af1a00fa58245295ea1753a2d75d101037a1c404145d41b04704831245ca8eeccd94414d1bcda402e4c40134149ffb3f088e915\" nohup npm run dev)",
+      "Bash(echo \"started pid $!\")",
+      "Read(//tmp/**)"
     ]
   }
 }

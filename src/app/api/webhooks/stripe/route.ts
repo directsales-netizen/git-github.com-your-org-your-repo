@@ -3,15 +3,34 @@ import type Stripe from 'stripe';
 import { requireStripeConfigured } from '@/lib/stripe/client';
 import { getPendingCheckout, deletePendingCheckout } from '@/lib/checkout/pendingCheckouts';
 import { hasProcessedEvent, markEventProcessed } from '@/lib/checkout/processedEvents';
-import { createOrder } from '@/lib/chat/orders';
-import { updateProductStock, getProductById } from '@/lib/api';
-import { awardPointsByEmail } from '@/lib/admin/rewards';
-import { recordCustomerOrder } from '@/lib/admin/customers';
-import { sendOrderConfirmationEmail } from '@/lib/email/resend';
+import { fulfillPendingCheckout } from '@/lib/checkout/fulfillPendingCheckout';
+import type { StripeRiskSignals } from '@/lib/fraud/riskEngine';
+import { recordDispute } from '@/lib/fraud/disputes';
+import { findOrderByProviderReference } from '@/lib/chat/orders';
 import { logActivity } from '@/lib/admin/activityLog';
-import { updatePurchaseInquiry } from '@/lib/checkout/inquiries';
 
 export const runtime = 'nodejs';
+
+/** Reads Radar's outcome + AVS/CVC checks off the charge — undefined (rather than thrown) on any retrieval failure, since this is a risk *enrichment*, not a requirement for fulfillment. */
+async function getStripeRiskSignals(stripe: Stripe, paymentIntentId: string): Promise<StripeRiskSignals | undefined> {
+  try {
+    const expanded = await stripe.paymentIntents.retrieve(paymentIntentId, { expand: ['latest_charge'] });
+    const charge = expanded.latest_charge as Stripe.Charge | null;
+    if (!charge) return undefined;
+
+    return {
+      riskLevel: charge.outcome?.risk_level ?? undefined,
+      riskScore: charge.outcome?.risk_score ?? undefined,
+      cvcCheck: charge.payment_method_details?.card?.checks?.cvc_check,
+      avsLine1Check: charge.payment_method_details?.card?.checks?.address_line1_check,
+      avsPostalCheck: charge.payment_method_details?.card?.checks?.address_postal_code_check,
+      cardCountry: charge.payment_method_details?.card?.country,
+    };
+  } catch (error) {
+    console.error('[stripe webhook] Failed to retrieve charge risk signals:', error);
+    return undefined;
+  }
+}
 
 export async function POST(request: NextRequest) {
   const { stripe, response } = requireStripeConfigured();
@@ -44,43 +63,55 @@ export async function POST(request: NextRequest) {
   }
 
   if (event.type === 'checkout.session.completed') {
+    // Hosted-redirect flow — only the purchase-inquiry approval email link
+    // uses this today (see src/app/api/admin/purchase-inquiries/[id]/route.ts).
     const session = event.data.object as Stripe.Checkout.Session;
     const pending = getPendingCheckout(session.id);
 
     if (!pending) {
       console.warn(`[stripe webhook] No pending checkout found for session ${session.id} — ignoring.`);
-      markEventProcessed(event.id);
-      return NextResponse.json({ received: true });
+    } else {
+      // A refund is issued against the PaymentIntent, not the Checkout Session.
+      const paymentIntentId = typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id;
+      const riskSignals = paymentIntentId ? await getStripeRiskSignals(stripe, paymentIntentId) : undefined;
+      await fulfillPendingCheckout(pending, paymentIntentId ?? session.id, riskSignals);
+      deletePendingCheckout(session.id);
     }
+  }
 
-    const order = await createOrder({
-      email: pending.email,
-      zip: pending.shippingAddress.zip,
-      items: pending.items.map((item) => ({ title: item.title, price: item.price, quantity: item.quantity, productId: item.productId })),
+  if (event.type === 'payment_intent.succeeded') {
+    // Embedded Stripe Elements flow — the cart checkout page
+    // (src/app/api/checkout/session/route.ts) creates the PaymentIntent.
+    const paymentIntent = event.data.object as Stripe.PaymentIntent;
+    const pending = getPendingCheckout(paymentIntent.id);
+
+    if (!pending) {
+      console.warn(`[stripe webhook] No pending checkout found for payment intent ${paymentIntent.id} — ignoring.`);
+    } else {
+      const riskSignals = await getStripeRiskSignals(stripe, paymentIntent.id);
+      await fulfillPendingCheckout(pending, paymentIntent.id, riskSignals);
+      deletePendingCheckout(paymentIntent.id);
+    }
+  }
+
+  if (event.type === 'charge.dispute.created' || event.type === 'charge.dispute.updated' || event.type === 'charge.dispute.closed') {
+    const dispute = event.data.object as Stripe.Dispute;
+    const paymentIntentId = typeof dispute.payment_intent === 'string' ? dispute.payment_intent : dispute.payment_intent?.id;
+    const order = paymentIntentId ? await findOrderByProviderReference(paymentIntentId) : null;
+
+    await recordDispute({
+      provider: 'stripe',
+      orderId: order?.id,
+      providerReference: paymentIntentId ?? dispute.id,
+      amount: dispute.amount / 100,
+      status: dispute.status,
     });
-
-    for (const item of pending.items) {
-      const product = await getProductById(item.productId);
-      if (product) await updateProductStock(item.productId, Math.max(0, product.stock - item.quantity));
-    }
-
-    await Promise.all([
-      awardPointsByEmail(pending.email, pending.name, pending.subtotal),
-      recordCustomerOrder(pending.email, pending.name, pending.subtotal),
-      sendOrderConfirmationEmail(pending.email, order.id, pending.items, pending.subtotal),
-      logActivity({
-        actor: 'stripe-webhook',
-        action: 'order-created',
-        target: `order ${order.id}`,
-        detail: `${pending.email} — $${pending.subtotal.toFixed(2)}`,
-      }),
-    ]);
-
-    deletePendingCheckout(session.id);
-
-    if (pending.sourceInquiryId) {
-      await updatePurchaseInquiry(pending.sourceInquiryId, { status: 'converted' });
-    }
+    await logActivity({
+      actor: 'stripe-webhook',
+      action: 'chargeback',
+      target: order ? `order ${order.id}` : `dispute ${dispute.id}`,
+      detail: `status: ${dispute.status} — $${(dispute.amount / 100).toFixed(2)}`,
+    });
   }
 
   markEventProcessed(event.id);

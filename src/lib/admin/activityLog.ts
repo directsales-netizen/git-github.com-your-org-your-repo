@@ -19,7 +19,17 @@ const ACTIVITY_LOG = globalSingleton('activityLog', (): ActivityLogEntry[] => [
 
 const nextIdBox = globalBox('activityLogNextId', () => 2);
 
-export async function logActivity(entry: { actor: string; action: string; target: string; detail?: string }): Promise<ActivityLogEntry> {
+export async function logActivity(entry: {
+  actor: string;
+  action: string;
+  target: string;
+  detail?: string;
+  ip?: string | null;
+  device?: string;
+  success?: boolean;
+  previousValue?: string;
+  newValue?: string;
+}): Promise<ActivityLogEntry> {
   const record: ActivityLogEntry = {
     id: `log-${nextIdBox.current++}`,
     createdAt: new Date().toISOString(),

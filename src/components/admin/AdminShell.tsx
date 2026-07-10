@@ -21,10 +21,10 @@ export default function AdminShell({ adminEmail, adminRole, notifications, child
   const [collapsed] = useSidebarCollapsed();
 
   return (
-    <div className="flex h-screen overflow-hidden bg-bg-primary">
+    <div className="flex h-screen overflow-hidden bg-bg-primary print:block print:h-auto print:overflow-visible">
       <aside
         className={cn(
-          'hidden shrink-0 border-r border-neutral-titanium/20 transition-all duration-300 desktop:block',
+          'hidden shrink-0 border-r border-neutral-titanium/20 transition-all duration-300 desktop:block print:hidden',
           collapsed ? 'w-20' : 'w-64'
         )}
       >
@@ -35,9 +35,11 @@ export default function AdminShell({ adminEmail, adminRole, notifications, child
         <AdminSidebar onNavigate={() => setMobileNavOpen(false)} />
       </Drawer>
 
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <AdminTopbar adminEmail={adminEmail} notifications={notifications} onMenuClick={() => setMobileNavOpen(true)} />
-        <main className="flex-1 overflow-y-auto p-4 tablet:p-6">{children}</main>
+      <div className="flex flex-1 flex-col overflow-hidden print:block print:overflow-visible">
+        <div className="print:hidden">
+          <AdminTopbar adminEmail={adminEmail} notifications={notifications} onMenuClick={() => setMobileNavOpen(true)} />
+        </div>
+        <main className="flex-1 overflow-y-auto p-4 tablet:p-6 print:overflow-visible print:p-0">{children}</main>
       </div>
 
       <OtpGateModal />

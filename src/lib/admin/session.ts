@@ -5,7 +5,10 @@
  * separate Node-only module never imported here or by middleware.
  */
 
+import { getSecuritySettings } from './securitySettings';
+
 export const ADMIN_SESSION_COOKIE = 'ptn_admin_session';
+/** Fallback only — the real, configurable value is securitySettings.sessionTtlMinutes (see getSessionTtlSeconds below). */
 export const SESSION_TTL_SECONDS = 8 * 60 * 60; // 8 hours
 
 export type SessionRole = 'SuperAdmin' | 'admin' | 'editor' | 'viewer';
@@ -65,9 +68,16 @@ async function getHmacKey(): Promise<CryptoKey> {
   );
 }
 
+/** Newly-issued tokens only — changing securitySettings.sessionTtlMinutes never affects already-signed tokens, whose exp is baked in at signing time. */
+export async function getSessionTtlSeconds(): Promise<number> {
+  const minutes = (await getSecuritySettings()).sessionTtlMinutes;
+  return minutes > 0 ? minutes * 60 : SESSION_TTL_SECONDS;
+}
+
 export async function signSession(email: string, role: SessionRole, sid: string): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
-  const payload: SessionPayload = { sub: email, role, sid, iat: now, exp: now + SESSION_TTL_SECONDS };
+  const ttlSeconds = await getSessionTtlSeconds();
+  const payload: SessionPayload = { sub: email, role, sid, iat: now, exp: now + ttlSeconds };
   const payloadB64 = toBase64Url(new TextEncoder().encode(JSON.stringify(payload)));
 
   const key = await getHmacKey();

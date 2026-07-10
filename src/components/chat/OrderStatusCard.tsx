@@ -1,4 +1,4 @@
-import { CheckCircle2, Package, Truck } from 'lucide-react';
+import { CheckCircle2, Package, Truck, XCircle } from 'lucide-react';
 import type { OrderSummary } from '@/types/chat';
 import { cardVariants, cn } from '@/design';
 
@@ -7,6 +7,7 @@ const STATUS_ICON: Record<OrderSummary['status'], typeof Package> = {
   shipped: Truck,
   'out-for-delivery': Truck,
   delivered: CheckCircle2,
+  cancelled: XCircle,
 };
 
 const STATUS_LABEL: Record<OrderSummary['status'], string> = {
@@ -14,6 +15,7 @@ const STATUS_LABEL: Record<OrderSummary['status'], string> = {
   shipped: 'Shipped',
   'out-for-delivery': 'Out for delivery',
   delivered: 'Delivered',
+  cancelled: 'Cancelled',
 };
 
 export default function OrderStatusCard({ order }: { order: OrderSummary }) {

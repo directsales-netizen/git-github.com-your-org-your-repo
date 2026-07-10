@@ -58,6 +58,8 @@ export function CartProvider({ children, ordersPaused = false }: { children: Rea
           imageColor: product.imageColor,
           quantity,
           availability: product.availability,
+          grade: product.grade,
+          category: product.category,
         },
       ];
     });

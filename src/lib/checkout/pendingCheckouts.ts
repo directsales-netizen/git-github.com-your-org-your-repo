@@ -22,6 +22,21 @@ export interface PendingCheckout {
   createdAt: string;
   /** Set only when this Stripe session was created via purchase-inquiry approval, so the webhook can flip the originating PurchaseInquiry to 'converted'. */
   sourceInquiryId?: string;
+  /** Optional customer-entered order note from the checkout page, surfaced to admin activity log on fulfillment. */
+  notes?: string;
+  /**
+   * Which payment rail created this — stamped onto the resulting order so
+   * admin refunds know which provider API to call. Deliberately no
+   * `providerReference` field here: for PayPal, the only id known when this
+   * is stashed is the Order ID (the map key), but refunds need the *capture*
+   * id, which only exists after capture succeeds. Fulfillment always passes
+   * the real, final reference explicitly (see fulfillPendingCheckout in
+   * src/app/api/webhooks/stripe/route.ts) rather than trusting a stashed one.
+   */
+  paymentProvider: 'stripe' | 'paypal';
+  /** Captured once at checkout-creation time — carried through to the order record for the fraud review queue. */
+  clientIp?: string;
+  phone?: string;
 }
 
 /**

@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { getCustomerSession } from '@/lib/customer/getSession';
 import { getOrdersByEmail } from '@/lib/chat/orders';
 import { cardVariants, cn } from '@/design';
@@ -8,6 +9,7 @@ const STATUS_LABEL: Record<string, string> = {
   shipped: 'Shipped',
   'out-for-delivery': 'Out for delivery',
   delivered: 'Delivered',
+  cancelled: 'Cancelled',
 };
 
 export default async function AccountOrdersPage() {
@@ -23,7 +25,7 @@ export default async function AccountOrdersPage() {
   return (
     <div className="flex flex-col gap-4">
       {orders.map((order) => (
-        <div key={order.id} className={cn(cardVariants.base, 'flex flex-col gap-2')}>
+        <Link key={order.id} href={`/account/orders/${order.id}`} className={cn(cardVariants.base, 'flex flex-col gap-2 transition-colors duration-300 hover:border-accent-primary/40')}>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="font-heading font-semibold text-neutral-white">Order {order.id}</p>
             <span className="text-caption font-body text-accent-primary">{STATUS_LABEL[order.status] ?? order.status}</span>
@@ -42,7 +44,7 @@ export default async function AccountOrdersPage() {
               {order.carrier} tracking: {order.trackingNumber}
             </p>
           )}
-        </div>
+        </Link>
       ))}
     </div>
   );

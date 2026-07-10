@@ -98,6 +98,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       subtotal: validation.subtotal,
       createdAt: new Date().toISOString(),
       sourceInquiryId: id,
+      paymentProvider: 'stripe',
     });
 
     const updated = await updatePurchaseInquiry(id, {

@@ -9,6 +9,13 @@ const columns: Column<ActivityLogEntry>[] = [
   { key: 'action', header: 'Action', sortValue: (e) => e.action },
   { key: 'target', header: 'Target', sortValue: (e) => e.target },
   { key: 'detail', header: 'Detail', render: (e) => e.detail ?? '—' },
+  { key: 'ip', header: 'IP', render: (e) => e.ip ?? '—' },
+  { key: 'device', header: 'Device', render: (e) => e.device ?? '—' },
+  {
+    key: 'success',
+    header: 'Success',
+    render: (e) => (e.success === undefined ? '—' : e.success ? 'Yes' : 'No'),
+  },
 ];
 
 export default function LogsClient({ entries }: { entries: ActivityLogEntry[] }) {

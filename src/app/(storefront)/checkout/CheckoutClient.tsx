@@ -1,26 +1,70 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { useCart } from '@/lib/cart/CartContext';
-import { buttonVariants, cardVariants, cn, inputVariants, spacing } from '@/design';
+import { buttonVariants, cardVariants, cn, spacing } from '@/design';
 import EmptyState from '@/components/admin/EmptyState';
+import AccordionSection from './AccordionSection';
+import OrderSummaryPanel from './OrderSummaryPanel';
+import CheckoutFooterTrustBar from './CheckoutFooterTrustBar';
+import ShippingSection from './sections/ShippingSection';
+import BillingSection from './sections/BillingSection';
+import PaymentSection, { type BillingDetails } from './sections/PaymentSection';
+import PayPalSection from './sections/PayPalSection';
+import ReviewSubmitSection from './sections/ReviewSubmitSection';
+import OrderNotesSection from './sections/OrderNotesSection';
+import { emptyAddress, formatAddress, isAddressComplete, type CheckoutAddress } from './checkoutTypes';
 
 interface Props {
   isAuthenticated: boolean;
   prefillEmail?: string;
+  prefillName?: string;
   requireAccount: boolean;
   ordersPaused: boolean;
   inquiryOnlyMode: boolean;
   supportEmail: string;
+  supportPhone?: string;
+  businessHours?: string;
 }
 
-export default function CheckoutClient({ isAuthenticated, prefillEmail, requireAccount, ordersPaused, inquiryOnlyMode, supportEmail }: Props) {
+type Step = 'shipping' | 'billing' | 'payment';
+
+function toApiAddress(address: CheckoutAddress) {
+  return { line1: address.line1, line2: address.line2 || undefined, city: address.city, state: address.state, zip: address.zip };
+}
+
+const currency = (value: number) => value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+
+export default function CheckoutClient({
+  isAuthenticated,
+  prefillEmail,
+  prefillName,
+  requireAccount,
+  ordersPaused,
+  inquiryOnlyMode,
+  supportEmail,
+  supportPhone,
+  businessHours,
+}: Props) {
   const { items, subtotal } = useCart();
-  const [email, setEmail] = useState(prefillEmail ?? '');
-  const [address, setAddress] = useState({ line1: '', line2: '', city: '', state: '', zip: '' });
-  const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [activeStep, setActiveStep] = useState<Step>('shipping');
+  const [shippingDone, setShippingDone] = useState(false);
+  const [billingDone, setBillingDone] = useState(false);
+
+  const [address, setAddress] = useState<CheckoutAddress>(emptyAddress);
+  const [phone, setPhone] = useState('');
+  const [billingSameAsShipping, setBillingSameAsShipping] = useState(true);
+  const [billingAddress, setBillingAddress] = useState<CheckoutAddress>(emptyAddress);
+  const [notes, setNotes] = useState('');
+
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [isLoadingIntent, setIsLoadingIntent] = useState(false);
+  const [intentError, setIntentError] = useState<string | null>(null);
+
+  const [isSubmittingInquiry, setIsSubmittingInquiry] = useState(false);
+  const [inquiryError, setInquiryError] = useState<string | null>(null);
   const [submittedInquiryId, setSubmittedInquiryId] = useState<string | null>(null);
 
   if (submittedInquiryId) {
@@ -68,108 +112,164 @@ export default function CheckoutClient({ isAuthenticated, prefillEmail, requireA
     );
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError(null);
-    setIsSubmitting(true);
+  const email = prefillEmail ?? '';
 
-    if (inquiryOnlyMode) {
-      const response = await fetch('/api/checkout/inquiry', {
+  async function handleContinueToPayment() {
+    setBillingDone(true);
+    setActiveStep('payment');
+
+    if (inquiryOnlyMode || clientSecret) return;
+
+    setIsLoadingIntent(true);
+    setIntentError(null);
+    try {
+      const response = await fetch('/api/checkout/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           items: items.map((item) => ({ productId: item.productId, quantity: item.quantity })),
-          shippingAddress: address,
+          email,
+          shippingAddress: toApiAddress(address),
+          notes,
+          phone,
         }),
       });
-
-      const data = (await response.json().catch(() => null)) as { inquiry?: { id: string }; error?: string } | null;
-
-      if (!response.ok || !data?.inquiry) {
-        setError(data?.error ?? 'Something went wrong submitting your purchase request.');
-        setIsSubmitting(false);
+      const data = (await response.json().catch(() => null)) as { clientSecret?: string; error?: string } | null;
+      if (!response.ok || !data?.clientSecret) {
+        setIntentError(data?.error ?? 'Something went wrong starting checkout.');
         return;
       }
-
-      setSubmittedInquiryId(data.inquiry.id);
-      setIsSubmitting(false);
-      return;
+      setClientSecret(data.clientSecret);
+    } finally {
+      setIsLoadingIntent(false);
     }
+  }
 
-    const response = await fetch('/api/checkout/session', {
+  async function handleSubmitInquiry() {
+    setIsSubmittingInquiry(true);
+    setInquiryError(null);
+
+    const response = await fetch('/api/checkout/inquiry', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         items: items.map((item) => ({ productId: item.productId, quantity: item.quantity })),
-        email,
-        shippingAddress: address,
+        shippingAddress: toApiAddress(address),
       }),
     });
 
-    const data = (await response.json().catch(() => null)) as { url?: string; error?: string } | null;
-
-    if (!response.ok || !data?.url) {
-      setError(data?.error ?? 'Something went wrong starting checkout.');
-      setIsSubmitting(false);
+    const data = (await response.json().catch(() => null)) as { inquiry?: { id: string }; error?: string } | null;
+    if (!response.ok || !data?.inquiry) {
+      setInquiryError(data?.error ?? 'Something went wrong submitting your purchase request.');
+      setIsSubmittingInquiry(false);
       return;
     }
 
-    window.location.href = data.url;
+    setSubmittedInquiryId(data.inquiry.id);
+    setIsSubmittingInquiry(false);
   }
 
+  const billingDetails: BillingDetails = {
+    name: prefillName || email,
+    email,
+    address: {
+      line1: (billingSameAsShipping ? address : billingAddress).line1,
+      line2: (billingSameAsShipping ? address : billingAddress).line2 || undefined,
+      city: (billingSameAsShipping ? address : billingAddress).city,
+      state: (billingSameAsShipping ? address : billingAddress).state,
+      postal_code: (billingSameAsShipping ? address : billingAddress).zip,
+      country: 'US',
+    },
+  };
+
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-      <div className={cn(cardVariants.base, 'flex flex-col gap-2')}>
-        <h2 className="text-h6 font-heading font-semibold text-neutral-white">Order Summary</h2>
-        {items.map((item) => (
-          <div key={item.productId} className="flex justify-between text-body-sm font-body text-neutral-light-gray">
-            <span>{item.title} × {item.quantity}</span>
-            <span>${(item.price * item.quantity).toFixed(2)}</span>
-          </div>
-        ))}
-        <div className="mt-2 flex justify-between border-t border-neutral-titanium/20 pt-2 font-heading font-semibold text-neutral-white">
-          <span>Subtotal</span>
-          <span>${subtotal.toFixed(2)}</span>
+    <div className="grid grid-cols-1 gap-8 desktop:grid-cols-[1.6fr_1fr] desktop:items-start">
+      <div className="flex flex-col gap-4">
+        <div className={cn(cardVariants.minimal, 'text-body-sm font-body text-neutral-light-gray')}>
+          Signed in as <span className="font-heading font-semibold text-neutral-white">{prefillName || email}</span>
+          {prefillName && <span className="text-neutral-silver"> · {email}</span>}
         </div>
-        <p className="text-caption font-body text-neutral-silver">Final price and stock are re-verified on the server before payment.</p>
-      </div>
 
-      <div className={cn(cardVariants.base, 'grid grid-cols-1 gap-4')}>
-        <h2 className="text-h6 font-heading font-semibold text-neutral-white">Contact & Shipping</h2>
-        <div>
-          <label htmlFor="checkout-email" className="mb-1.5 block text-label-md font-body text-neutral-light-gray">Email</label>
-          <input
-            id="checkout-email"
-            type="email"
-            required
-            disabled={isAuthenticated}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className={inputVariants.base}
+        <AccordionSection
+          title="Shipping"
+          stepNumber={1}
+          isOpen={activeStep === 'shipping'}
+          isComplete={shippingDone}
+          summary={formatAddress(address)}
+          onToggle={() => setActiveStep('shipping')}
+        >
+          <ShippingSection
+            address={address}
+            onChange={setAddress}
+            phone={phone}
+            onPhoneChange={setPhone}
+            canContinue={isAddressComplete(address)}
+            onContinue={() => {
+              setShippingDone(true);
+              setActiveStep('billing');
+            }}
           />
-        </div>
-        <div>
-          <label htmlFor="checkout-line1" className="mb-1.5 block text-label-md font-body text-neutral-light-gray">Address line 1</label>
-          <input id="checkout-line1" required value={address.line1} onChange={(e) => setAddress((a) => ({ ...a, line1: e.target.value }))} className={inputVariants.base} />
-        </div>
-        <div>
-          <label htmlFor="checkout-line2" className="mb-1.5 block text-label-md font-body text-neutral-light-gray">Address line 2 (optional)</label>
-          <input id="checkout-line2" value={address.line2} onChange={(e) => setAddress((a) => ({ ...a, line2: e.target.value }))} className={inputVariants.base} />
-        </div>
-        <div className="grid grid-cols-3 gap-3">
-          <input aria-label="City" required placeholder="City" value={address.city} onChange={(e) => setAddress((a) => ({ ...a, city: e.target.value }))} className={inputVariants.base} />
-          <input aria-label="State" required placeholder="State" value={address.state} onChange={(e) => setAddress((a) => ({ ...a, state: e.target.value }))} className={inputVariants.base} />
-          <input aria-label="ZIP" required placeholder="ZIP" value={address.zip} onChange={(e) => setAddress((a) => ({ ...a, zip: e.target.value }))} className={inputVariants.base} />
-        </div>
+        </AccordionSection>
+
+        <AccordionSection
+          title="Billing"
+          stepNumber={2}
+          isOpen={activeStep === 'billing'}
+          isComplete={billingDone}
+          disabled={!shippingDone}
+          summary={billingSameAsShipping ? 'Same as shipping address' : formatAddress(billingAddress)}
+          onToggle={() => shippingDone && setActiveStep('billing')}
+        >
+          <BillingSection
+            sameAsShipping={billingSameAsShipping}
+            onSameAsShippingChange={setBillingSameAsShipping}
+            address={billingAddress}
+            onChange={setBillingAddress}
+            canContinue={billingSameAsShipping || isAddressComplete(billingAddress)}
+            isSubmitting={isLoadingIntent}
+            onContinue={handleContinueToPayment}
+          />
+        </AccordionSection>
+
+        <AccordionSection
+          title="Payment"
+          stepNumber={3}
+          isOpen={activeStep === 'payment'}
+          isComplete={false}
+          disabled={!billingDone}
+          onToggle={() => billingDone && setActiveStep('payment')}
+        >
+          {inquiryOnlyMode ? (
+            <>
+              {inquiryError && <p role="alert" className="mb-4 text-body-sm font-body text-error">{inquiryError}</p>}
+              <ReviewSubmitSection onSubmit={handleSubmitInquiry} isSubmitting={isSubmittingInquiry} />
+            </>
+          ) : (
+            <div className="flex flex-col gap-5">
+              <PaymentSection
+                clientSecret={clientSecret}
+                isLoading={isLoadingIntent}
+                error={intentError}
+                billingDetails={billingDetails}
+                totalLabel={currency(subtotal)}
+              />
+              <PayPalSection
+                items={items.map((item) => ({ productId: item.productId, quantity: item.quantity }))}
+                shippingAddress={address}
+                notes={notes}
+                phone={phone}
+              />
+            </div>
+          )}
+        </AccordionSection>
+
+        <OrderNotesSection notes={notes} onChange={setNotes} />
       </div>
 
-      {error && <p role="alert" className="text-body-sm font-body text-error">{error}</p>}
-
-      <button type="submit" disabled={isSubmitting} className={cn(buttonVariants.primary, spacing.buttonPadding, 'text-body-md')}>
-        {inquiryOnlyMode
-          ? isSubmitting ? 'Submitting…' : 'Submit Purchase Request'
-          : isSubmitting ? 'Redirecting to payment…' : 'Continue to Payment'}
-      </button>
-    </form>
+      <div>
+        <OrderSummaryPanel items={items} subtotal={subtotal} supportEmail={supportEmail} supportPhone={supportPhone} businessHours={businessHours} />
+        <CheckoutFooterTrustBar />
+      </div>
+    </div>
   );
 }

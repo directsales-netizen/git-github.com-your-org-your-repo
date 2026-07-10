@@ -16,6 +16,8 @@ export const REQUEST_KIND_LABELS: Record<RequestKind, string> = {
   warranty_repair: 'Warranty or Repair Request',
   complaint: 'Customer Complaint',
   partnership: 'Partnership or Vendor Inquiry',
+  return_request: 'Return Request',
+  refund_request: 'Refund Request',
   other: 'Other Request',
 };
 

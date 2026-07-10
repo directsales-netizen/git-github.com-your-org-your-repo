@@ -5,7 +5,12 @@
 | Variable | Required for | Effect when unset |
 |---|---|---|
 | `STRIPE_SECRET_KEY` | Real payments | `POST /api/checkout/session` and the webhook return 503 "Payments are not configured yet." — no crash. |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Embedded Stripe Elements on `/checkout` | `PaymentSection` renders a "Payments are not configured yet" notice instead of mounting Stripe.js — no crash. |
 | `STRIPE_WEBHOOK_SECRET` | Order fulfillment | `POST /api/webhooks/stripe` returns 503 — no order/stock/points side effects occur. |
+| `PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` | PayPal checkout | `POST /api/checkout/paypal/{order,capture}` return 503 "PayPal is not configured yet." — no crash. |
+| `PAYPAL_ENV` | Selecting sandbox vs. live | Defaults to `sandbox` if unset — set to `live` for real transactions. |
+| `PAYPAL_WEBHOOK_ID` | PayPal order fulfillment | Signature verification fails closed, so `POST /api/webhooks/paypal` rejects every event with 400 rather than trusting an unverified one. |
+| `NEXT_PUBLIC_PAYPAL_CLIENT_ID` | Embedded PayPal Buttons on `/checkout` | `PayPalSection` renders nothing (no button, no error) instead of loading the PayPal JS SDK. |
 | `RESEND_API_KEY` | Verification/confirmation email | `sendEmail` no-ops with a console warning; registration/checkout still succeed. |
 | `RESEND_FROM_EMAIL` | Sending address | Falls back to Resend's shared `onboarding@resend.dev` sandbox address. |
 
@@ -61,11 +66,64 @@ for the full design rationale. Short version:
 - The **only** place price/stock/product-id are trusted from is
   `src/app/api/checkout/session/route.ts`'s per-item catalog lookup
   (`getProductById`) — the request body has no price field to even ignore.
-- Stripe Checkout is hosted/redirect-based (no card data touches this app).
-  Order creation, stock decrement, rewards points, CRM lifetime-value update,
-  and the confirmation email all happen from the signature-verified,
-  idempotent webhook handler — never from the success-page redirect, since
-  that isn't proof of payment.
+- The cart checkout page (`/checkout`) renders its own accordion-style
+  Customer/Shipping/Billing/Payment/Notes flow and embeds Stripe's Payment
+  Element + Express Checkout Element (Apple Pay/Google Pay/PayPal/Link)
+  directly on the page via a **PaymentIntent** (`src/app/api/checkout/session/route.ts`),
+  created with `automatic_payment_methods: { enabled: true }` so the Stripe
+  Dashboard controls which methods show (BNPL like Klarna/Affirm/Afterpay can
+  be enabled later with zero code changes). Card data still never touches
+  this app — it goes straight into Stripe's iframe.
+- The purchase-inquiry approval flow (admin-approved requests emailed to a
+  customer) still uses a hosted **Checkout Session** redirect
+  (`src/app/api/admin/purchase-inquiries/[id]/route.ts`), since its entry
+  point is a cold email link with no page to embed Elements into.
+- Either way, order creation, stock decrement, rewards points, CRM
+  lifetime-value update, and the confirmation email all happen from the
+  signature-verified, idempotent webhook handler (`payment_intent.succeeded`
+  or `checkout.session.completed`) — never from the client-side redirect,
+  since that isn't proof of payment.
+- **Fraud prevention** sits between "payment verified" and "order fulfilled"
+  in `src/lib/checkout/fulfillPendingCheckout.ts`. `src/lib/fraud/riskEngine.ts`
+  computes a composite score from: Stripe Radar's outcome + AVS/CVC checks
+  (Stripe only — read via `stripe.paymentIntents.retrieve(..., { expand: ['latest_charge'] })`
+  in the webhook), checkout velocity and duplicate-fingerprint detection
+  (`src/lib/fraud/{velocity,duplicateDetection}.ts`, both providers),
+  disposable-email and fake-phone-pattern detection
+  (`src/lib/fraud/{disposableEmail,tempPhone}.ts`, static curated lists —
+  not live verification APIs), and admin-managed IP/card-country blocklists
+  (`src/lib/fraud/blocklists.ts`). Only an IP blocklist match hard-blocks
+  *before* payment (`prepareCheckout.ts`, a 403, no charge attempted) —
+  everything else only ever **flags** (order fulfills normally, visible in
+  the review queue) or, at the `extreme` tier, **holds** (payment is still
+  captured exactly as before, but stock/rewards/CRM/confirmation-email side
+  effects are withheld until a SuperAdmin clicks Approve or Reject on
+  `/admin/fraud`). Reject means a full refund via the same provider-aware
+  `issueRefund()` helper the Orders page's refund action uses
+  (`src/lib/admin/refunds.ts`) — this system never auto-rejects/refunds on
+  its own. Chargebacks (`charge.dispute.*` / `CUSTOMER.DISPUTE.*` webhook
+  events) are logged to the same dashboard via `src/lib/fraud/disputes.ts`.
+  A true pre-authorization country block (Stripe can't reject a charge from
+  our server before it completes) should be configured as a Stripe Radar
+  rule in the Dashboard — this app's country blocklist only contributes to
+  the post-charge risk score.
+- PayPal is a second, independent payment rail on the same Payment step —
+  its own Orders v2 API (`src/lib/paypal/{client,orders,refunds}.ts`), its
+  own OAuth2 client-credentials auth, and its own webhook
+  (`src/app/api/webhooks/paypal/route.ts`, verified via PayPal's
+  signature-verification API rather than a local HMAC). `POST
+  /api/checkout/paypal/order` creates a PayPal Order using the same shared
+  gating chain as Stripe (`src/lib/checkout/prepareCheckout.ts` — no guest
+  checkout on this site for either provider); `POST
+  /api/checkout/paypal/capture` performs the trusted server-to-server
+  capture call and fulfills immediately on `COMPLETED`, with the webhook as
+  an idempotent backstop for the rarer async-`PENDING` case. Both Stripe and
+  PayPal funnel into the same `fulfillPendingCheckout()` helper
+  (`src/lib/checkout/fulfillPendingCheckout.ts`) and the same order/rewards/
+  CRM/email pipeline, so admin Orders/Customers pages show both providers
+  without separate code paths. Admin refunds (full or partial) are issued
+  from the Orders page and call the matching provider's refund API based on
+  the order's stored `paymentProvider`/`providerReference`.
 
 ## New files
 

@@ -100,6 +100,22 @@ export async function sendOrderConfirmationEmail(
   });
 }
 
+export async function sendShipmentNotificationEmail(
+  email: string,
+  orderId: string,
+  trackingNumber: string,
+  carrier: string
+): Promise<SendEmailResult> {
+  return sendEmail({
+    to: email,
+    subject: `Your Premium TechNoir order ${orderId} has shipped`,
+    html: `<p>Good news — your order is on its way.</p>
+<p><strong>Carrier:</strong> ${carrier}<br/>
+<strong>Tracking number:</strong> ${trackingNumber}</p>
+<p>Order reference: ${orderId}</p>`,
+  });
+}
+
 export async function sendInquiryApprovedEmail(email: string, inquiryId: string, checkoutUrl: string): Promise<SendEmailResult> {
   return sendEmail({
     to: email,
@@ -107,6 +123,34 @@ export async function sendInquiryApprovedEmail(email: string, inquiryId: string,
     html: `<p>Good news — your purchase request <strong>${inquiryId}</strong> has been reviewed and approved.</p>
 <p><a href="${checkoutUrl}">Complete your payment here</a> to finish your order.</p>
 <p>This link takes you to a secure Stripe payment page — we never see or store your card details.</p>`,
+  });
+}
+
+export type SecurityAlertKind = 'new-remembered-device' | 'login-rate-limit-tripped';
+
+export async function sendSecurityAlertEmail(
+  to: string,
+  kind: SecurityAlertKind,
+  details: { browser?: string; os?: string; ip?: string | null }
+): Promise<SendEmailResult> {
+  if (kind === 'new-remembered-device') {
+    return sendEmail({
+      to,
+      subject: 'New device signed in to your Premium TechNoir admin account',
+      html: `<p>A new device was just remembered on your admin account ("Keep me logged in").</p>
+<p><strong>Browser:</strong> ${details.browser ?? 'Unknown'}<br/>
+<strong>OS:</strong> ${details.os ?? 'Unknown'}<br/>
+<strong>IP:</strong> ${details.ip ?? 'Unknown'}</p>
+<p>If this wasn't you, revoke it from Active Sessions in the admin dashboard and change your password.</p>`,
+    });
+  }
+
+  return sendEmail({
+    to,
+    subject: 'Repeated failed admin login attempts detected',
+    html: `<p>Several failed login attempts were just blocked on the Premium TechNoir admin login page.</p>
+<p><strong>IP:</strong> ${details.ip ?? 'Unknown'}</p>
+<p>No action is needed if this was you mistyping a password. If you don't recognize this activity, consider tightening login restrictions or the IP allow list in Security Settings.</p>`,
   });
 }
 
