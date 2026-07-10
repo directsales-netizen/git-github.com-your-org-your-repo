@@ -7,7 +7,14 @@ export const config = {
 };
 
 const PUBLIC_PATHS = ['/admin/login', '/api/admin/auth/login', '/admin/accept-invite', '/api/admin/invite/accept'];
-const PUBLIC_CUSTOMER_PATHS = ['/api/customer/auth/register', '/api/customer/auth/login', '/api/customer/auth/logout', '/api/customer/auth/verify-email'];
+const PUBLIC_CUSTOMER_PATHS = [
+  '/api/customer/auth/register',
+  '/api/customer/auth/login',
+  '/api/customer/auth/logout',
+  '/api/customer/auth/verify-email',
+  '/api/customer/auth/oauth-complete',
+  '/api/customer/auth/magic-link',
+];
 
 function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));

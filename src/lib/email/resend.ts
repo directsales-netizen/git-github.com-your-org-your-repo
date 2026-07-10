@@ -49,6 +49,17 @@ export async function sendVerificationEmail(email: string, token: string, origin
   });
 }
 
+export async function sendMagicLinkEmail(email: string, token: string, origin: string): Promise<SendEmailResult> {
+  const link = `${origin}/api/customer/auth/magic-link/verify?token=${encodeURIComponent(token)}`;
+  return sendEmail({
+    to: email,
+    subject: 'Your Premium TechNoir sign-in link',
+    html: `<p>Click below to sign in to Premium TechNoir. No password needed.</p>
+<p><a href="${link}">${link}</a></p>
+<p>This link expires in 15 minutes and can only be used once.</p>`,
+  });
+}
+
 export async function sendAdminInviteEmail(email: string, token: string, origin: string): Promise<SendEmailResult> {
   const link = `${origin}/admin/accept-invite?token=${encodeURIComponent(token)}`;
   return sendEmail({
