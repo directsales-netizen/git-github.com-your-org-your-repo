@@ -3,10 +3,13 @@ import Footer from '@/components/Footer';
 import ChatWidget from '@/components/ChatWidget';
 import MaintenancePage from '@/components/MaintenancePage';
 import OrdersPausedBanner from '@/components/OrdersPausedBanner';
+import EditModeProvider from '@/components/EditModeProvider';
 import { CartProvider } from '@/lib/cart/CartContext';
 import { getCustomerSession } from '@/lib/customer/getSession';
 import { getAdminSession } from '@/lib/admin/getSession';
 import { getBusinessSettings } from '@/lib/admin/settings';
+
+const EDITOR_ROLES = ['editor', 'admin', 'SuperAdmin'];
 
 export default async function StorefrontLayout({ children }: { children: React.ReactNode }) {
   const [session, settings, adminSession] = await Promise.all([
@@ -31,13 +34,17 @@ export default async function StorefrontLayout({ children }: { children: React.R
     );
   }
 
+  const canEdit = Boolean(adminSession) && EDITOR_ROLES.includes(adminSession!.role);
+
   return (
-    <CartProvider ordersPaused={settings.ordersPaused}>
-      {settings.ordersPaused && <OrdersPausedBanner supportEmail={settings.supportEmail} />}
-      <Navigation isAuthenticated={Boolean(session)} />
-      <main className="flex-1">{children}</main>
-      <Footer />
-      <ChatWidget />
-    </CartProvider>
+    <EditModeProvider canEdit={canEdit}>
+      <CartProvider ordersPaused={settings.ordersPaused}>
+        {settings.ordersPaused && <OrdersPausedBanner supportEmail={settings.supportEmail} />}
+        <Navigation isAuthenticated={Boolean(session)} />
+        <main className="flex-1">{children}</main>
+        <Footer />
+        <ChatWidget />
+      </CartProvider>
+    </EditModeProvider>
   );
 }
