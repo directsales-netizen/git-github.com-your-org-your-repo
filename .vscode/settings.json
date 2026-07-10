@@ -1,4 +1,5 @@
 {
     "claudeCode.allowDangerouslySkipPermissions": true,
-    "github.copilot.chat.claudeAgent.allowDangerouslySkipPermissions": true
+    "github.copilot.chat.claudeAgent.allowDangerouslySkipPermissions": true,
+    "claudeCode.useTerminal": true
 }
