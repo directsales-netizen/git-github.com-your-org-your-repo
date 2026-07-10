@@ -1,7 +1,7 @@
+import Anthropic from '@anthropic-ai/sdk';
 import type { ChatRole, ConversationContext, ReplyEvent } from '@/types/chat';
-import { classifyIntent, MAX_UNRESOLVED_EXCHANGES } from './intents';
-import { KNOWLEDGE_BASE } from './knowledgeBase';
-import { matchProducts } from './productMatch';
+import { PRODUCT_CATEGORIES, type ProductCategory } from '@/types/product';
+import { getProducts } from '@/lib/api';
 import { createAppointment, parseAppointmentType, APPOINTMENT_TYPE_LABELS } from './appointments';
 import { lookupOrder, ORDER_STATUS_COPY } from './orders';
 
@@ -10,172 +10,350 @@ export interface ConversationTurn {
   text: string;
 }
 
+const MODEL = 'claude-fable-5';
+const FALLBACK_MODEL = 'claude-opus-4-8';
+const MAX_TOOL_ITERATIONS = 6;
+
+const SYSTEM_PROMPT = `You are the AI shopping and support assistant for Premium TechNoir, an ecommerce store selling professionally tested, responsibly sourced refurbished electronics (MacBooks, iMacs, iPads, iPhones, Windows PCs, and accessories).
+
+Brand voice: honest, helpful, knowledgeable without condescension, professional, friendly, and clear. Never exaggerate or greenwash. Tagline: "Premium Technology. Smarter Value. Sustainable Impact." Hidden message to reinforce naturally: extending the life of technology responsibly.
+
+Condition grading (mention when relevant):
+- Grade A (Like New): minimal wear, 85%+ battery health, near-perfect screen, full accessories.
+- Grade B (Good): light wear, 75-85% battery health, excellent screen.
+- Grade C (Fair): visible wear, 65-74% battery health, good screen.
+- Grade D (Acceptable): heavy wear, 50-64% battery health, fully functional.
+
+Policies:
+- Every device ships with a minimum 30-day warranty covering full functionality.
+- Returns/exchanges accepted within 30 days of delivery in as-shipped condition.
+- Orders ship in 1-2 business days, arrive in 3-5 business days, with tracking.
+- Payments: major credit cards, PayPal, and financing/BNPL at checkout. Payment processing is PCI DSS compliant and happens on the checkout page only.
+- Sustainability: buying refurbished extends a device's life and avoids the footprint of manufacturing new. Use factual, specific framing, never vague "saving the planet" language.
+
+Tools available to you:
+- search_products: use whenever a customer describes wanting to find, compare, or buy a device.
+- lookup_order: use once you have both an order number and the email or zip on the order. Ask for whichever is missing first.
+- book_appointment: use once you have the appointment type (repair, consultation, or callback), a preferred day/time window, and a contact method (phone or email). Ask follow-up questions to gather whichever pieces are missing before calling this tool — do not guess.
+- suggest_quick_replies: optionally attach up to 4 short suggested replies to help the customer respond quickly (e.g. when asking them to pick between options).
+- escalate_to_human: use when the customer is frustrated or angry, asks for a human, has a billing/payment dispute, needs a warranty claim investigated, or when you're not confident you can resolve the issue after a couple of exchanges.
+
+Safety rules — never violate these:
+- Never collect or ask for payment card details, CVV, or full card numbers.
+- Never make guarantees beyond the stated warranty terms.
+- Never promise a specific delivery date — only the general 1-2 day processing / 3-5 day delivery window unless a tool result gives you an exact tracking-based estimate.
+- Never negotiate price or agree to policy exceptions (e.g. extending returns beyond 30 days) — offer to escalate instead.
+- Always admit when you don't know something, and offer to escalate rather than guess.
+
+Keep replies concise and conversational — a few sentences, not an essay. Do not use markdown headers or bullet lists in chat replies; write like a helpful person texting back. Do not repeat information already visible in a product card or order/appointment confirmation you just returned via a tool.`;
+
+const TOOLS = [
+  {
+    name: 'search_products',
+    description:
+      'Search the Premium TechNoir catalog for devices matching what the customer is looking for. Call this whenever a customer describes wanting to find, compare, or buy a device.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        category: {
+          type: 'string',
+          enum: PRODUCT_CATEGORIES,
+          description: 'Product category to filter by, if the customer named one or it is clearly implied.',
+        },
+        price_min: { type: 'number', description: 'Minimum price in USD, if the customer gave a budget range.' },
+        price_max: { type: 'number', description: 'Maximum price in USD, if the customer gave a budget or "under $X".' },
+        prioritize_higher_grade: {
+          type: 'boolean',
+          description:
+            'Set true if the customer mentioned a demanding use case (video editing, gaming, programming, music production, etc.) so higher-condition hardware is shown first.',
+        },
+      },
+    },
+  },
+  {
+    name: 'lookup_order',
+    description:
+      'Look up the status of an existing order. Only call this once you have both the order number and the email or zip code on the order.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        order_id: { type: 'string', description: 'The order number, e.g. PTN-48213.' },
+        email_or_zip: { type: 'string', description: 'The email address or zip code associated with the order.' },
+      },
+      required: ['order_id', 'email_or_zip'],
+    },
+  },
+  {
+    name: 'book_appointment',
+    description:
+      'Book a repair, consultation, or callback appointment. Only call this once you have the type, a preferred day/time window, and a contact method (phone or email) — ask for whichever is missing first.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        type: { type: 'string', enum: ['repair', 'consultation', 'callback'] },
+        preferred_window: { type: 'string', description: "Customer's preferred day/time, in their own words." },
+        contact_method: { type: 'string', description: 'Phone number or email to reach the customer.' },
+      },
+      required: ['type', 'preferred_window', 'contact_method'],
+    },
+  },
+  {
+    name: 'suggest_quick_replies',
+    description: 'Attach up to 4 short suggested-reply chips to your response, to help the customer respond quickly.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        options: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Up to 4 short reply options, e.g. ["Repair", "Consultation", "Callback"].',
+        },
+      },
+      required: ['options'],
+    },
+  },
+  {
+    name: 'escalate_to_human',
+    description:
+      "Flag this conversation for a human specialist. Use when the customer is frustrated, explicitly asks for a person, has a billing dispute, needs a warranty claim investigated, or you can't resolve the issue after a couple of exchanges.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        reason: { type: 'string', description: 'Brief reason for escalating.' },
+      },
+    },
+  },
+] as const;
+
+let cachedClient: Anthropic | null = null;
+
+function getClient(): Anthropic | null {
+  if (!process.env.ANTHROPIC_API_KEY) return null;
+  if (!cachedClient) cachedClient = new Anthropic();
+  return cachedClient;
+}
+
+async function* sayEvents(text: string, signal: AbortSignal): AsyncGenerator<ReplyEvent> {
+  const words = text.split(' ');
+  const CHUNK_SIZE = 4;
+  for (let i = 0; i < words.length; i += CHUNK_SIZE) {
+    if (signal.aborted) return;
+    const chunk = words.slice(i, i + CHUNK_SIZE).join(' ') + (i + CHUNK_SIZE < words.length ? ' ' : '');
+    yield { type: 'text-delta', delta: chunk };
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  }
+}
+
+interface ToolExecution {
+  resultContent: string;
+  events: ReplyEvent[];
+}
+
+async function executeTool(name: string, input: Record<string, unknown>): Promise<ToolExecution> {
+  switch (name) {
+    case 'search_products': {
+      const category = typeof input.category === 'string' ? (input.category as ProductCategory) : undefined;
+      const priceMin = typeof input.price_min === 'number' ? input.price_min : undefined;
+      const priceMax = typeof input.price_max === 'number' ? input.price_max : undefined;
+      const prioritizeHigherGrade = input.prioritize_higher_grade === true;
+
+      const { products: matches } = await getProducts({ category, priceMin, priceMax, sort: 'popular' });
+      let products = matches;
+      if (prioritizeHigherGrade) {
+        const gradeRank: Record<string, number> = { A: 0, B: 1, C: 2, D: 3 };
+        products = [...products].sort(
+          (a, b) => gradeRank[a.grade] - gradeRank[b.grade] || b.popularity - a.popularity
+        );
+      }
+      products = products.slice(0, 3);
+
+      if (products.length === 0) {
+        return {
+          resultContent:
+            'No products matched those filters. Ask the customer if a different budget or category would work, or offer the closest alternatives.',
+          events: [],
+        };
+      }
+
+      const summary = products.map((p) => `${p.title} — $${p.price} (${p.grade}, ${p.availability})`).join('; ');
+      return {
+        resultContent: `Found ${products.length} matching product(s): ${summary}`,
+        events: [{ type: 'products', products, heading: 'Here are a few options that match:' }],
+      };
+    }
+
+    case 'lookup_order': {
+      const orderId = typeof input.order_id === 'string' ? input.order_id.trim() : '';
+      const secondaryId = typeof input.email_or_zip === 'string' ? input.email_or_zip.trim() : '';
+      if (!orderId || !secondaryId) {
+        return {
+          resultContent: 'Missing order_id or email_or_zip — ask the customer for the missing detail, then call this tool again.',
+          events: [],
+        };
+      }
+
+      const order = await lookupOrder(orderId, secondaryId);
+      if (!order) {
+        return {
+          resultContent:
+            "No order found matching those details. Ask the customer to double-check the order number and email/zip, or offer to escalate.",
+          events: [],
+        };
+      }
+
+      return {
+        resultContent: `Order ${order.id} status: ${order.status}. ${ORDER_STATUS_COPY[order.status]}`,
+        events: [{ type: 'order-status', order }],
+      };
+    }
+
+    case 'book_appointment': {
+      const type = parseAppointmentType(typeof input.type === 'string' ? input.type : '');
+      const preferredWindow = typeof input.preferred_window === 'string' ? input.preferred_window.trim() : '';
+      const contactMethod = typeof input.contact_method === 'string' ? input.contact_method.trim() : '';
+
+      if (!type || !preferredWindow || !contactMethod) {
+        return {
+          resultContent:
+            'Missing required booking details — ask the customer for whichever of appointment type, preferred window, or contact method is missing, then call this tool again.',
+          events: [],
+        };
+      }
+
+      const appointment = await createAppointment({ type, preferredWindow, contactMethod });
+      return {
+        resultContent: `Booked a ${APPOINTMENT_TYPE_LABELS[type].toLowerCase()}, reference ${appointment.id}, preferred window ${appointment.preferredWindow}.`,
+        events: [{ type: 'appointment-confirmed', appointment }],
+      };
+    }
+
+    case 'suggest_quick_replies': {
+      const options = Array.isArray(input.options)
+        ? input.options.filter((o): o is string => typeof o === 'string').slice(0, 4)
+        : [];
+      if (options.length === 0) {
+        return { resultContent: 'No valid options provided.', events: [] };
+      }
+      return { resultContent: 'Quick-reply chips shown to the customer.', events: [{ type: 'quick-replies', options }] };
+    }
+
+    case 'escalate_to_human': {
+      const reason =
+        typeof input.reason === 'string' && input.reason.trim() ? input.reason.trim() : 'assistant-escalated';
+      return {
+        resultContent: 'Escalation flagged. Tell the customer a specialist will follow up shortly, and keep your reply brief.',
+        events: [{ type: 'escalate', reason }],
+      };
+    }
+
+    default:
+      return { resultContent: `Unknown tool: ${name}`, events: [] };
+  }
+}
+
 /**
- * This is the single seam to swap in a real hosted LLM later: replace the
- * body of this function with a call to e.g. Anthropic's Messages API
- * (streaming), keeping the same `AsyncGenerator<ReplyEvent>` contract so
- * no caller (the route handler, the client hook) needs to change. Today
- * it's a rule-based/retrieval engine over a static knowledge base and the
- * existing mock product catalog — see docs/CHAT_ASSISTANT_ARCHITECTURE.md.
+ * Calls Claude Fable 5 (with automatic fallback to Opus 4.8 on a safety
+ * decline) via the streaming Messages API, running a manual tool-use loop
+ * so product search, order lookup, appointment booking, quick replies, and
+ * escalation surface as structured ReplyEvents alongside the streamed text.
+ * The conversation is stateless across requests — `conversation` is the
+ * full plain-text transcript resent by the client each turn, so no tool_use
+ * blocks need to persist between HTTP requests, only within this call.
  */
 export async function* generateAssistantReply(
   conversation: ConversationTurn[],
   context: ConversationContext,
   signal: AbortSignal
 ): AsyncGenerator<ReplyEvent> {
-  const ctx: ConversationContext = { ...context };
-  const lastUserText = [...conversation].reverse().find((turn) => turn.role === 'user')?.text ?? '';
+  const anthropic = getClient();
 
-  async function* say(text: string): AsyncGenerator<ReplyEvent> {
-    const words = text.split(' ');
-    const CHUNK_SIZE = 4;
-    for (let i = 0; i < words.length; i += CHUNK_SIZE) {
-      if (signal.aborted) return;
-      const chunk = words.slice(i, i + CHUNK_SIZE).join(' ') + (i + CHUNK_SIZE < words.length ? ' ' : '');
-      yield { type: 'text-delta', delta: chunk };
-      await new Promise((resolve) => setTimeout(resolve, 20));
-    }
+  if (!anthropic) {
+    yield { type: 'escalate', reason: 'assistant-unavailable-missing-api-key' };
+    yield* sayEvents(
+      "I'm having trouble reaching my knowledge base right now — let me get a specialist connected with you instead.",
+      signal
+    );
+    yield { type: 'context', context };
+    yield { type: 'done' };
+    return;
   }
 
-  function isAbandonPhrase(text: string): boolean {
-    return /never mind|cancel that|forget it|actually,? (no|nvm)/i.test(text);
+  const messages: Anthropic.Beta.BetaMessageParam[] = conversation
+    .filter((turn) => turn.text.trim().length > 0)
+    .map((turn) => ({ role: turn.role, content: turn.text }));
+
+  if (messages.length === 0 || messages[messages.length - 1].role !== 'user') {
+    messages.push({ role: 'user', content: '(no message)' });
   }
 
   try {
-    // --- Continue an in-progress appointment booking ---
-    if (ctx.pendingAppointment) {
-      if (isAbandonPhrase(lastUserText)) {
-        ctx.pendingAppointment = undefined;
-        yield* say("No problem, I've cancelled that booking. What else can I help with?");
-      } else if (ctx.pendingAppointment.step === 'type') {
-        const type = parseAppointmentType(lastUserText);
-        if (!type) {
-          yield { type: 'quick-replies', options: ['Repair', 'Consultation', 'Callback'] };
-          yield* say('Which would you like: a repair, a consultation, or a callback?');
-        } else {
-          ctx.pendingAppointment = { step: 'preferredWindow', type };
-          yield* say(`Got it, a ${APPOINTMENT_TYPE_LABELS[type].toLowerCase()}. What day or time works best for you?`);
+    let exhaustedIterations = true;
+
+    for (let iteration = 0; iteration < MAX_TOOL_ITERATIONS; iteration++) {
+      if (signal.aborted) return;
+
+      const stream = anthropic.beta.messages.stream(
+        {
+          model: MODEL,
+          max_tokens: 4096,
+          system: SYSTEM_PROMPT,
+          tools: [...TOOLS],
+          messages,
+          betas: ['server-side-fallback-2026-06-01'],
+          fallbacks: [{ model: FALLBACK_MODEL }],
+          output_config: { effort: 'medium' },
+        },
+        { signal }
+      );
+
+      for await (const event of stream) {
+        if (signal.aborted) return;
+        if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+          yield { type: 'text-delta', delta: event.delta.text };
         }
-      } else if (ctx.pendingAppointment.step === 'preferredWindow') {
-        ctx.pendingAppointment = {
-          step: 'contactMethod',
-          type: ctx.pendingAppointment.type,
-          preferredWindow: lastUserText.trim(),
-        };
-        yield* say("And what's the best way to reach you — phone or email?");
-      } else if (ctx.pendingAppointment.step === 'contactMethod') {
-        const { type, preferredWindow } = ctx.pendingAppointment;
-        const appointment = await createAppointment({
-          type: type!,
-          preferredWindow: preferredWindow!,
-          contactMethod: lastUserText.trim(),
-        });
-        ctx.pendingAppointment = undefined;
-        ctx.unresolvedExchangeCount = 0;
-        yield { type: 'appointment-confirmed', appointment };
-        yield* say(
-          `You're all set — reference ${appointment.id}. A specialist will follow up for your ${APPOINTMENT_TYPE_LABELS[appointment.type].toLowerCase()} around ${appointment.preferredWindow}.`
+      }
+
+      const message = await stream.finalMessage();
+
+      if (message.stop_reason === 'refusal') {
+        exhaustedIterations = false;
+        yield { type: 'escalate', reason: 'declined-by-safety-classifier' };
+        yield* sayEvents(
+          "I'm not able to help with that one — let me connect you with a specialist from our team.",
+          signal
         );
+        break;
       }
-      yield { type: 'context', context: ctx };
-      yield { type: 'done' };
-      return;
+
+      messages.push({ role: 'assistant', content: message.content });
+
+      if (message.stop_reason !== 'tool_use') {
+        exhaustedIterations = false;
+        break;
+      }
+
+      const toolUseBlocks = message.content.filter(
+        (block): block is Anthropic.Beta.BetaToolUseBlock => block.type === 'tool_use'
+      );
+
+      const toolResults: Anthropic.Beta.BetaToolResultBlockParam[] = [];
+      for (const toolUse of toolUseBlocks) {
+        const { resultContent, events } = await executeTool(toolUse.name, (toolUse.input ?? {}) as Record<string, unknown>);
+        for (const replyEvent of events) {
+          yield replyEvent;
+        }
+        toolResults.push({ type: 'tool_result', tool_use_id: toolUse.id, content: resultContent });
+      }
+
+      messages.push({ role: 'user', content: toolResults });
     }
 
-    // --- Continue an in-progress order lookup ---
-    if (ctx.pendingOrderLookup) {
-      if (isAbandonPhrase(lastUserText)) {
-        ctx.pendingOrderLookup = undefined;
-        yield* say("No problem — let me know if you'd like to look up an order later.");
-      } else if (ctx.pendingOrderLookup.step === 'orderId') {
-        ctx.pendingOrderLookup = { step: 'secondaryId', orderId: lastUserText.trim() };
-        yield* say('Thanks. Can you also confirm the email or zip code on the order?');
-      } else {
-        const order = await lookupOrder(ctx.pendingOrderLookup.orderId ?? '', lastUserText.trim());
-        ctx.pendingOrderLookup = undefined;
-        if (order) {
-          ctx.unresolvedExchangeCount = 0;
-          yield { type: 'order-status', order };
-          yield* say(ORDER_STATUS_COPY[order.status]);
-        } else {
-          ctx.unresolvedExchangeCount += 1;
-          yield* say("I couldn't find an order matching those details. You can double-check the order number, or I can connect you with our team.");
-        }
-      }
-      yield { type: 'context', context: ctx };
-      yield { type: 'done' };
-      return;
+    if (exhaustedIterations) {
+      yield { type: 'escalate', reason: 'exceeded-tool-iteration-limit' };
+      yield* sayEvents("Let me get a specialist to help finish this up with you.", signal);
     }
 
-    // --- Fresh turn: classify intent ---
-    const intent = classifyIntent(lastUserText);
-
-    switch (intent.id) {
-      case 'escalation': {
-        ctx.unresolvedExchangeCount = 0;
-        yield { type: 'escalate', reason: 'customer-requested-or-frustration-detected' };
-        yield* say("This sounds like it might need a closer look from our team. Let me connect you with a specialist who can help — they'll be with you in just a moment.");
-        break;
-      }
-
-      case 'appointment-book': {
-        const type = parseAppointmentType(lastUserText);
-        if (type) {
-          ctx.pendingAppointment = { step: 'preferredWindow', type };
-          yield* say(`I can help set up a ${APPOINTMENT_TYPE_LABELS[type].toLowerCase()}. What day or time works best for you?`);
-        } else {
-          ctx.pendingAppointment = { step: 'type' };
-          yield { type: 'quick-replies', options: ['Repair', 'Consultation', 'Callback'] };
-          yield* say("I can help with that. Would you like a repair, a consultation, or a callback?");
-        }
-        break;
-      }
-
-      case 'order-lookup': {
-        ctx.pendingOrderLookup = { step: 'orderId' };
-        yield* say("Happy to check on that. What's your order number?");
-        break;
-      }
-
-      case 'product-search': {
-        const { products, need } = await matchProducts(lastUserText);
-        if (products.length > 0) {
-          ctx.unresolvedExchangeCount = 0;
-          yield { type: 'products', products, heading: 'Here are a few options that match:' };
-          const gradeNote = need.demanding ? ' I prioritized higher-condition grades since that use case benefits from newer hardware.' : '';
-          yield* say(`Based on what you're looking for, here's what we have in stock.${gradeNote}`);
-        } else {
-          ctx.unresolvedExchangeCount += 1;
-          yield* say("I couldn't find an exact match in stock right now — want me to show you the closest alternatives, or would a different budget work?");
-        }
-        break;
-      }
-
-      case 'faq': {
-        ctx.unresolvedExchangeCount = 0;
-        yield* say(KNOWLEDGE_BASE[intent.topic!].response);
-        break;
-      }
-
-      case 'fallback':
-      default: {
-        ctx.unresolvedExchangeCount += 1;
-        if (ctx.unresolvedExchangeCount >= MAX_UNRESOLVED_EXCHANGES) {
-          ctx.unresolvedExchangeCount = 0;
-          yield { type: 'escalate', reason: 'unresolved-after-multiple-exchanges' };
-          yield* say("I want to make sure you get the right answer — let me connect you with a specialist from our team.");
-        } else {
-          yield {
-            type: 'quick-replies',
-            options: ['Track an order', 'Warranty info', 'Find a device', 'Book a repair'],
-          };
-          yield* say("I'm not totally sure about that one. Could you rephrase, or pick one of these?");
-        }
-        break;
-      }
-    }
-
-    yield { type: 'context', context: ctx };
+    yield { type: 'context', context };
     yield { type: 'done' };
   } catch {
     if (!signal.aborted) {

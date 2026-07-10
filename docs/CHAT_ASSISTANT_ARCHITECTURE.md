@@ -1,12 +1,12 @@
 # Chat Assistant Architecture
 
-Voice + text AI assistant widget (floating action button → chat panel), covering the requirements in the Prompt 18 brief. This doc explains how it's built, why, and what a future upgrade to a real hosted LLM / premium voice provider would involve.
+Voice + text AI assistant widget (floating action button → chat panel), covering the requirements in the Prompt 18 brief. This doc explains how it's built and why.
 
-## Why a rule-based engine instead of a real LLM
+## Real LLM: Claude Fable 5, with tool use
 
-This repo has no backend, no auth, no order/appointment system, and no AI SDK installed, and no API key was authorized for this build. Rather than leave voice/AI features non-functional, the assistant's "brain" is a real, working rule-based/retrieval engine — intent classification + a knowledge base transcribed from `AI_ASSISTANT_SPECS.md`/`CLAUDE.md` + product search against the existing mock catalog. It streams real responses, supports barge-in, and is fully testable today with zero cost or secrets.
+The assistant's "brain" is a real call to Anthropic's Messages API (`src/lib/chat/generateAssistantReply.ts`), model `claude-fable-5` (Anthropic's most capable widely released model), with automatic server-side fallback to `claude-opus-4-8` if a request is declined by Fable 5's safety classifiers (`fallbacks` param, beta `server-side-fallback-2026-06-01`).
 
-It is intentionally isolated behind one function so upgrading to a real LLM later is a small, localized change:
+The function signature is unchanged from the original mock, so no caller (the route handler, `useChatAssistant`) needed to change:
 
 ```ts
 // src/lib/chat/generateAssistantReply.ts
@@ -17,7 +17,15 @@ export async function* generateAssistantReply(
 ): AsyncGenerator<ReplyEvent>
 ```
 
-**To upgrade to a real hosted LLM** (e.g. Anthropic Claude): replace the body of this function with a streaming call to the provider's Messages API, keeping the same `AsyncGenerator<ReplyEvent>` contract — no caller (the route handler, `useChatAssistant`) needs to change. You'd add `@anthropic-ai/sdk` as a dependency and an `ANTHROPIC_API_KEY` environment variable (not required today; the mock engine needs no secrets). The system prompt should be built from `AI_ASSISTANT_SPECS.md` + `CLAUDE.md` directly. Product search / order lookup / appointment booking would become tool calls instead of regex-driven intents, but the `ReplyEvent` union (product cards, order status, appointment confirmations, escalation) already models the structured outputs an LLM tool-use flow would need.
+**System prompt:** built inline from `CLAUDE.md` (brand voice, grading system, policies, safety rules) and `AI_ASSISTANT_SPECS.md` (escalation triggers, tone).
+
+**Tool use:** product search, order lookup, appointment booking, quick-reply suggestions, and human escalation are all Claude tool calls (`search_products`, `lookup_order`, `book_appointment`, `suggest_quick_replies`, `escalate_to_human`), executed by a manual streaming tool-use loop (max 6 round trips per turn) inside `generateAssistantReply`. Each tool's side effect (looking up a mock order, booking a mock appointment) is the same underlying data-layer call the old rule-based engine used (`src/lib/chat/orders.ts`, `src/lib/chat/appointments.ts`, `getProducts` from `src/lib/api.ts`), so the admin dashboard and storefront order history stay consistent with what the chatbot tells customers. Each tool execution also emits the matching `ReplyEvent` (`products`, `order-status`, `appointment-confirmed`, `quick-replies`, `escalate`) so the existing UI/route-handler side effects (admin notifications, escalation handoff) keep working unchanged.
+
+**Multi-turn state:** the client resends the full plain-text conversation transcript on every request (see `ConversationTurn[]`), so Claude re-derives any in-progress slot-filling (e.g. "what's your order number?" → "PTN-48213") from the transcript itself — no server-side session or tool-call history needs to persist across HTTP requests, only within a single turn's tool loop.
+
+**Missing API key:** if `ANTHROPIC_API_KEY` is unset, `generateAssistantReply` fails open — it immediately escalates the conversation to a human specialist with a friendly message, rather than throwing. Same "disabled until configured" convention as the Vonage SMS integration.
+
+**Refusals:** Fable 5 (and its Opus 4.8 fallback) can return `stop_reason: "refusal"` for requests its safety classifiers decline. That path also escalates to a human rather than erroring.
 
 ## Voice I/O: Web Speech API, with a documented swap seam
 
@@ -29,11 +37,11 @@ Browser support varies: Chrome/Edge have full support, Safari is partial, Firefo
 
 `POST /api/chat` streams **NDJSON** (newline-delimited JSON), not `EventSource`/SSE — `EventSource` can't send a POST body or be cancelled via `AbortController`, both required for barge-in (stopping generation when a user interrupts). The client already reads the response as a raw `ReadableStream`, so NDJSON adds structure with minimal complexity: each line is one `ReplyEvent` (`text-delta`, `products`, `order-status`, `appointment-confirmed`, `quick-replies`, `escalate`, `context`, `done`, `error`). See `src/lib/chat/formatSSE.ts` for the shared encode/parse helpers, and `src/hooks/useChatAssistant.ts` for the client-side read loop + `AbortController` wiring.
 
-Response text is deliberately chunked into small word groups with short delays (`generateAssistantReply`'s `say()` helper) so the streaming/typing-animation UI has real incremental content to render — this is intentional pacing for a synchronous rule-based engine, not a hack; a real LLM integration would stream naturally instead.
+Claude's own text streams naturally as `text-delta` events. The `sayEvents()` helper (small word-group chunks with short delays) is only used for the two non-model fallback messages — missing API key and safety-classifier refusal — so those paths still render with the same typing-animation pacing as a real streamed response.
 
 ## Conversation state across turns (appointments, order lookup)
 
-The server is stateless — `ConversationContext` (pending appointment/order-lookup slot-filling state, unresolved-exchange counter) is threaded through as a `context` event on every response and sent back by the client on the next request (`useChatAssistant` stores it in its reducer). This avoids needing a session store while still supporting multi-turn flows like appointment booking.
+The server is stateless — `ConversationContext` is threaded through as a `context` event on every response and echoed back by the client on the next request (`useChatAssistant` stores it in its reducer), but `generateAssistantReply` no longer reads or writes slot-filling fields on it: since Claude sees the full plain-text transcript on every request, it re-derives any in-progress booking/lookup state (e.g. "what's your order number?" → "PTN-48213") from the conversation itself via tool use. The `context` round-trip is kept only for wire-format compatibility with the client's reducer.
 
 ## Mock data
 
@@ -56,4 +64,4 @@ Net effect: browsing the site with the widget closed loads none of the chat/voic
 
 ## Required environment variables
 
-None today. If upgraded to a real LLM per above: `ANTHROPIC_API_KEY` (or equivalent for whichever provider).
+`ANTHROPIC_API_KEY` — required for the assistant to call Claude Fable 5. Without it, the assistant fails open to a human-escalation message (see above) rather than being non-functional.

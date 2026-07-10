@@ -1,7 +1,15 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { requireAdminOrAboveSessionWithOtp } from '@/lib/admin/getSession';
 import { logActivity } from '@/lib/admin/activityLog';
-import { createProduct, type ProductInput } from '@/lib/api';
+import { createProduct, getAllProductsAdmin, type ProductInput } from '@/lib/api';
+
+export async function GET() {
+  const { session, response } = await requireAdminOrAboveSessionWithOtp();
+  if (!session) return response;
+
+  const products = await getAllProductsAdmin();
+  return NextResponse.json(products);
+}
 
 export async function POST(request: NextRequest) {
   const { session, response } = await requireAdminOrAboveSessionWithOtp();
