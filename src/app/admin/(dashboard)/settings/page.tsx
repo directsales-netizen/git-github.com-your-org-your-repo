@@ -4,6 +4,7 @@ import { getBusinessSettings } from '@/lib/admin/settings';
 import PageHeader from '@/components/admin/PageHeader';
 import EmptyState from '@/components/admin/EmptyState';
 import SettingsClient from './SettingsClient';
+import RedeploySection from './RedeploySection';
 
 export default async function AdminSettingsPage() {
   // src/proxy.ts + the dashboard layout already guarantee a valid admin
@@ -30,6 +31,7 @@ export default async function AdminSettingsPage() {
     <div className="flex flex-col gap-6">
       <PageHeader title="Business Settings" description="Store details used across the site and support communications." />
       <SettingsClient initialSettings={settings} />
+      <RedeploySection />
     </div>
   );
 }
