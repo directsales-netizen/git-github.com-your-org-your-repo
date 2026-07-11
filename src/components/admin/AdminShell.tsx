@@ -8,6 +8,7 @@ import AdminSidebar from './AdminSidebar';
 import AdminTopbar, { type AdminNotification } from './AdminTopbar';
 import Drawer from './Drawer';
 import OtpGateModal from './OtpGateModal';
+import PasskeyGateModal from './PasskeyGateModal';
 
 interface AdminShellProps {
   adminEmail: string;
@@ -43,6 +44,7 @@ export default function AdminShell({ adminEmail, adminRole, notifications, child
       </div>
 
       <OtpGateModal />
+      <PasskeyGateModal />
     </div>
   );
 }

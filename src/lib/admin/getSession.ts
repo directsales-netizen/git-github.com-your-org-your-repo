@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { ADMIN_SESSION_COOKIE, verifySessionToken, type SessionPayload, type SessionRole } from './session';
 import { isOtpVerified } from './otp';
+import { isVaultUnlocked } from './vaultGate';
 
 /** For Server Components and Route Handlers (Node runtime) — not for middleware. */
 export async function getAdminSession(): Promise<SessionPayload | null> {
@@ -81,6 +82,29 @@ export async function requireSuperAdminSessionWithOtp() {
 /** Commerce/engagement modules (Inventory, Orders, Customers, Requests, Appointments, Rewards): admin and SuperAdmin. */
 export async function requireAdminOrAboveSessionWithOtp() {
   return requireRoleSessionWithOtp(['admin', 'SuperAdmin']);
+}
+
+/**
+ * Gate for the Credentials Vault (settings/credentials) — on top of
+ * requireRoleSession(), also requires a passkey ceremony
+ * (src/lib/admin/vaultGate.ts) to have unlocked this session recently. When
+ * locked, the response carries `vaultRequired: true` so the client
+ * (src/lib/admin/vaultFetch.ts) can prompt for the passkey and retry,
+ * mirroring requireRoleSessionWithOtp()'s otpRequired convention.
+ */
+export async function requireRoleSessionWithVault(allowedRoles: SessionRole[]): Promise<
+  { session: SessionPayload; response: null } | { session: null; response: NextResponse }
+> {
+  const result = await requireRoleSession(allowedRoles);
+  if (!result.session) return result;
+
+  if (!isVaultUnlocked(result.session)) {
+    return {
+      session: null,
+      response: NextResponse.json({ error: 'Vault unlock required', vaultRequired: true }, { status: 401 }),
+    };
+  }
+  return result;
 }
 
 /** Content-focused modules (Content, AI Chatbot settings): editor and above. */

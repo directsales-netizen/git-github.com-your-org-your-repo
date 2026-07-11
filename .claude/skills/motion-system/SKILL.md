@@ -66,6 +66,21 @@ this system that's NOT scroll-driven — a plain infinite yoyo tween for
 ambient glow orbs / floating glass panels; see Hero.tsx for the reference
 usage, capped at two per section — atmosphere, not a focal point).
 
+**Named 1:1 aliases** (`src/components/animations/`) — thin wrappers that
+exist purely so imports match `MOTION_SYSTEM.md`'s naming exactly; the real
+logic lives in the Foundation components above, not here: `FadeUp.tsx` /
+`FadeDown.tsx` / `FadeLeft.tsx` / `FadeRight.tsx` (each `Fade` with `variant`
+fixed), `ScaleReveal.tsx` (`Fade variant="scale"`), `BlurReveal.tsx` /
+`ImageReveal.tsx` (`Reveal type="blur"` / `type="image"`), `Parallax.tsx`
+(= `ParallaxLayer`), `ScrollTimeline.tsx` (= `MotionTimeline`). Prefer `Fade`/
+`Reveal`/`ParallaxLayer`/`MotionTimeline` directly when writing new code — use
+these named aliases only where the spec-exact name matters (e.g. matching a
+design doc). `CardReveal.tsx` is the one name on the list with no prior
+implementation: it names the `Fade variant="up"` + `GlassCard` pairing that
+was already hand-composed per-card throughout the site (WhyChoose,
+FeaturedProducts, Testimonials, sustainability grades/CTA) — safe to migrate
+those call sites to it opportunistically, not yet done everywhere.
+
 **Already wired**: `src/app/(storefront)/layout.tsx` mounts
 `SmoothScrollProvider` + `ScrollProgress` once and wraps `{children}` in
 `PageTransition`. `Hero.tsx` and `Navigation.tsx` are the reference

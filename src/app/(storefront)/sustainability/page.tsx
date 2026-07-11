@@ -5,6 +5,8 @@ import { PRODUCT_GRADE_DESCRIPTIONS, PRODUCT_GRADE_LABELS, type ProductGrade } f
 import { buttonVariants, cn, grid, spacing } from '@/design';
 import Fade from '@/components/animations/Fade';
 import GlassCard from '@/components/animations/GlassCard';
+import GlassReveal from '@/components/animations/GlassReveal';
+import ParallaxLayer from '@/components/animations/ParallaxLayer';
 import RefurbishmentPinSection from './RefurbishmentPinSection';
 
 export const metadata: Metadata = {
@@ -31,15 +33,17 @@ export default function SustainabilityPage() {
         </section>
       </Fade>
 
-      <section className={cn(spacing.containerPadding, spacing.sectionMargin, 'mx-auto max-w-[1440px]')}>
-        <div className={cn(grid.threeCol)}>
-          {IMPACT_METRICS.map((metric, index) => (
-            <Fade key={metric.label} variant="up" transition={{ delay: index * 0.08 }}>
-              <GlassCard className="p-6 text-center">
-                <p className="text-h3 font-heading font-bold text-accent-primary">{metric.value}</p>
-                <p className="mt-2 text-body-sm font-body text-neutral-silver">{metric.label}</p>
-              </GlassCard>
-            </Fade>
+      <section className={cn(spacing.containerPadding, spacing.sectionMargin, 'relative mx-auto max-w-[1440px] overflow-hidden')}>
+        <ParallaxLayer speed={-0.25} className="pointer-events-none absolute inset-x-0 -top-24 h-[140%]">
+          <div className="mx-auto h-full w-full max-w-3xl rounded-full bg-accent-primary/10 blur-[120px]" />
+        </ParallaxLayer>
+
+        <div className={cn(grid.threeCol, 'relative')}>
+          {IMPACT_METRICS.map((metric) => (
+            <GlassReveal key={metric.label} className="p-6 text-center">
+              <p className="text-h3 font-heading font-bold text-accent-primary">{metric.value}</p>
+              <p className="mt-2 text-body-sm font-body text-neutral-silver">{metric.label}</p>
+            </GlassReveal>
           ))}
         </div>
       </section>
