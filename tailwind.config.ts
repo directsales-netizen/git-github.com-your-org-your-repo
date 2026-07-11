@@ -196,6 +196,16 @@ const config: Config = {
         wide: designTokens.breakpoints.wide,
         ultrawide: designTokens.breakpoints.ultrawide,
       },
+
+      // Motion system (see MOTION_SYSTEM.md) — premium loading skeleton shimmer sweep.
+      keyframes: {
+        shimmer: {
+          '100%': { transform: 'translateX(100%)' },
+        },
+      },
+      animation: {
+        shimmer: 'shimmer 1.6s infinite',
+      },
     },
   },
   plugins: [tailwindcssAnimate],

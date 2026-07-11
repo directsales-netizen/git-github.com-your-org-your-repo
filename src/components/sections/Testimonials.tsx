@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, Star } from 'lucide-react';
 import type { Testimonial } from '@/types/testimonial';
 import { accessibility, cn, spacing } from '@/design';
+import Fade from '@/components/animations/Fade';
+import GlassCard from '@/components/animations/GlassCard';
 
 export default function Testimonials({ testimonials }: { testimonials: Testimonial[] }) {
   const [index, setIndex] = useState(0);
@@ -21,12 +23,14 @@ export default function Testimonials({ testimonials }: { testimonials: Testimoni
 
   return (
     <section className={cn(spacing.containerPadding, spacing.sectionMargin, 'mx-auto max-w-[1440px]')}>
-      <h2 className="text-center text-h2 font-heading font-bold text-neutral-white">What Our Customers Say</h2>
+      <Fade variant="up">
+        <h2 className="text-center text-h2 font-heading font-bold text-neutral-white">What Our Customers Say</h2>
+      </Fade>
 
       <div className="mx-auto mt-10 max-w-2xl">
-        <div
+        <GlassCard
           key={active.id}
-          className="animate-in fade-in rounded-lg border border-neutral-titanium/20 bg-bg-secondary p-8 text-center duration-300"
+          className="animate-in fade-in p-8 text-center duration-300"
           role="group"
           aria-roledescription="slide"
           aria-label={`Testimonial ${index + 1} of ${testimonials.length}`}
@@ -45,7 +49,7 @@ export default function Testimonials({ testimonials }: { testimonials: Testimoni
 
           <p className="mt-6 text-body-md font-body font-semibold text-neutral-white">{active.name}</p>
           <p className="text-body-sm font-body text-neutral-silver">{active.location} &middot; {active.device}</p>
-        </div>
+        </GlassCard>
 
         <div className="mt-6 flex items-center justify-center gap-4">
           <button

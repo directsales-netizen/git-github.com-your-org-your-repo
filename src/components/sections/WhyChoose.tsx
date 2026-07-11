@@ -1,5 +1,7 @@
 import { CheckCircle2, Leaf, ShieldCheck, Wallet } from 'lucide-react';
-import { cardVariants, cn, grid, spacing } from '@/design';
+import { cn, grid, spacing } from '@/design';
+import Fade from '@/components/animations/Fade';
+import GlassCard from '@/components/animations/GlassCard';
 
 const VALUES = [
   {
@@ -27,18 +29,22 @@ const VALUES = [
 export default function WhyChoose() {
   return (
     <section className={cn(spacing.containerPadding, spacing.sectionMargin, 'mx-auto max-w-[1440px]')}>
-      <h2 className="text-center text-h2 font-heading font-bold text-neutral-white">Why Choose Premium TechNoir</h2>
-      <p className="mx-auto mt-4 max-w-2xl text-center text-body-lg font-body text-neutral-light-gray">
-        Trust, transparency, and quality guide every device we sell.
-      </p>
+      <Fade variant="up">
+        <h2 className="text-center text-h2 font-heading font-bold text-neutral-white">Why Choose Premium TechNoir</h2>
+        <p className="mx-auto mt-4 max-w-2xl text-center text-body-lg font-body text-neutral-light-gray">
+          Trust, transparency, and quality guide every device we sell.
+        </p>
+      </Fade>
 
       <div className={cn(grid.fourCol, 'mt-12')}>
-        {VALUES.map(({ icon: Icon, heading, description }) => (
-          <div key={heading} className={cardVariants.base}>
-            <Icon size={28} className="text-accent-primary" aria-hidden="true" />
-            <h3 className="mt-4 text-h5 font-heading font-semibold text-neutral-white">{heading}</h3>
-            <p className="mt-2 text-body-sm font-body text-neutral-silver">{description}</p>
-          </div>
+        {VALUES.map(({ icon: Icon, heading, description }, index) => (
+          <Fade key={heading} variant="up" transition={{ delay: index * 0.08 }}>
+            <GlassCard className="h-full p-6">
+              <Icon size={28} className="text-accent-primary" aria-hidden="true" />
+              <h3 className="mt-4 text-h5 font-heading font-semibold text-neutral-white">{heading}</h3>
+              <p className="mt-2 text-body-sm font-body text-neutral-silver">{description}</p>
+            </GlassCard>
+          </Fade>
         ))}
       </div>
     </section>

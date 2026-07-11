@@ -5,9 +5,13 @@ import MaintenancePage from '@/components/MaintenancePage';
 import OrdersPausedBanner from '@/components/OrdersPausedBanner';
 import EditModeProvider from '@/components/EditModeProvider';
 import { CartProvider } from '@/lib/cart/CartContext';
+import { WishlistProvider } from '@/lib/customer/WishlistContext';
 import { getCustomerSession } from '@/lib/customer/getSession';
 import { getAdminSession } from '@/lib/admin/getSession';
 import { getBusinessSettings } from '@/lib/admin/settings';
+import SmoothScrollProvider from '@/components/animations/SmoothScrollProvider';
+import ScrollProgress from '@/components/animations/ScrollProgress';
+import PageTransition from '@/components/animations/PageTransition';
 
 const EDITOR_ROLES = ['editor', 'admin', 'SuperAdmin'];
 
@@ -39,11 +43,17 @@ export default async function StorefrontLayout({ children }: { children: React.R
   return (
     <EditModeProvider canEdit={canEdit}>
       <CartProvider ordersPaused={settings.ordersPaused}>
-        {settings.ordersPaused && <OrdersPausedBanner supportEmail={settings.supportEmail} />}
-        <Navigation isAuthenticated={Boolean(session)} />
-        <main className="flex-1">{children}</main>
-        <Footer />
-        <ChatWidget />
+        <WishlistProvider isAuthenticated={Boolean(session)}>
+          <SmoothScrollProvider />
+          <ScrollProgress />
+          {settings.ordersPaused && <OrdersPausedBanner supportEmail={settings.supportEmail} />}
+          <Navigation isAuthenticated={Boolean(session)} />
+          <main className="flex-1">
+            <PageTransition>{children}</PageTransition>
+          </main>
+          <Footer />
+          <ChatWidget />
+        </WishlistProvider>
       </CartProvider>
     </EditModeProvider>
   );

@@ -3,12 +3,15 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 import { Menu, Search, ShoppingCart, User } from 'lucide-react';
 import { NAV_LINKS } from '@/types/navigation';
 import { accessibility, cn, flex } from '@/design';
 import Logo from '@/components/Logo';
 import MobileMenu from '@/components/MobileMenu';
 import { useCart } from '@/lib/cart/CartContext';
+import { useScrolled } from '@/components/animations/NavbarMotion';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 
 export default function Navigation({ isAuthenticated = false }: { isAuthenticated?: boolean }) {
   const pathname = usePathname();
@@ -17,6 +20,8 @@ export default function Navigation({ isAuthenticated = false }: { isAuthenticate
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const accountRef = useRef<HTMLDivElement>(null);
+  const scrolled = useScrolled(8);
+  const reducedMotion = useReducedMotion();
 
   async function handleLogout() {
     setIsAccountOpen(false);
@@ -47,7 +52,14 @@ export default function Navigation({ isAuthenticated = false }: { isAuthenticate
 
   return (
     <>
-      <header className="sticky top-0 z-fixed border-b border-neutral-titanium/20 bg-bg-primary/95 backdrop-blur">
+      <header
+        className={cn(
+          'sticky top-0 z-fixed border-b transition-all duration-300',
+          scrolled
+            ? 'border-neutral-titanium/20 bg-bg-primary/80 shadow-elevation backdrop-blur-xl'
+            : 'border-transparent bg-bg-primary/95 backdrop-blur'
+        )}
+      >
       <nav
         aria-label="Main"
         className={cn(flex.between, 'mx-auto max-w-[1440px] px-6 py-4 tablet:px-8 desktop:px-12')}
@@ -65,13 +77,20 @@ export default function Navigation({ isAuthenticated = false }: { isAuthenticate
                   href={link.href}
                   aria-current={isActive ? 'page' : undefined}
                   className={cn(
-                    'text-body-md font-body transition-colors duration-300 hover:text-accent-primary',
+                    'relative text-body-md font-body transition-colors duration-300 hover:text-accent-primary',
                     isActive ? 'text-accent-primary' : 'text-neutral-light-gray',
                     accessibility.focusRing,
                     'rounded-sm'
                   )}
                 >
                   {link.label}
+                  {isActive && !reducedMotion && (
+                    <motion.span
+                      layoutId="nav-active-underline"
+                      className="absolute -bottom-1 left-0 right-0 h-0.5 rounded-full bg-accent-primary"
+                      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                    />
+                  )}
                 </Link>
               </li>
             );

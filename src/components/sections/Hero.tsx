@@ -1,15 +1,22 @@
 'use client';
 
+import { useRef } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
-import { motion, useReducedMotion } from 'framer-motion';
-import { ShieldCheck } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { ChevronDown, ShieldCheck } from 'lucide-react';
 import { buttonVariants, cn, flex, spacing } from '@/design';
 import { adminFetch, extractAdminErrorMessage } from '@/lib/admin/adminFetch';
 import { useEditMode } from '@/components/EditModeProvider';
 import InlineEditableText from '@/components/InlineEditableText';
 import type { SiteContentSettings } from '@/types/admin';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { useMousePosition } from '@/hooks/useMousePosition';
+import { useMagnetic } from '@/hooks/useMagnetic';
+import { HeroReveal, HeroRevealItem } from '@/components/animations/HeroReveal';
+import HoverTilt from '@/components/animations/HoverTilt';
+import FloatingElement from '@/components/animations/FloatingElement';
 
 // Client-only: mounts a WebGL canvas, so it must never run during SSR (and
 // shouldn't block the server-rendered headline/CTA, which are what matters
@@ -44,11 +51,9 @@ export default function Hero({
   const prefersReducedMotion = useReducedMotion();
   const router = useRouter();
   const { editModeOn } = useEditMode();
-
-  const fadeUp = {
-    initial: prefersReducedMotion ? {} : { opacity: 0, y: 16 },
-    animate: { opacity: 1, y: 0 },
-  };
+  const sectionRef = useRef<HTMLElement>(null);
+  const mouse = useMousePosition(sectionRef);
+  const magneticCtaRef = useMagnetic<HTMLAnchorElement>();
 
   async function saveField(field: EditableHeroField, value: string) {
     const response = await adminFetch('/api/admin/content', {
@@ -61,12 +66,40 @@ export default function Hero({
   }
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-bg-secondary to-bg-primary">
+    <section ref={sectionRef} className="relative overflow-hidden bg-gradient-to-b from-bg-secondary to-bg-primary">
       <div className="absolute inset-0 opacity-40">
         <HeroShaderBackground reducedMotion={Boolean(prefersReducedMotion)} />
       </div>
       {/* Scrim over the shader so headline/subheadline text keeps WCAG AA contrast regardless of what the gradient is doing underneath. */}
       <div className="absolute inset-0 bg-gradient-to-b from-bg-primary/70 via-bg-primary/40 to-bg-primary" />
+
+      {/* Mouse-responsive lighting — a soft aqua glow that follows the cursor within the hero. */}
+      {!prefersReducedMotion && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 opacity-60 transition-opacity duration-500"
+          style={{
+            background: `radial-gradient(600px circle at ${50 + mouse.x * 25}% ${50 + mouse.y * 25}%, rgba(47,231,242,0.12), transparent 60%)`,
+          }}
+        />
+      )}
+
+      {/* Ambient floating glow orbs — atmosphere only, never more than two. */}
+      {!prefersReducedMotion && (
+        <>
+          <FloatingElement
+            distance={16}
+            duration={3}
+            className="pointer-events-none absolute -left-10 top-1/4 h-40 w-40 rounded-full bg-accent-primary/10 blur-3xl"
+          />
+          <FloatingElement
+            distance={22}
+            duration={2.4}
+            delay={0.6}
+            className="pointer-events-none absolute right-0 top-1/3 h-56 w-56 rounded-full bg-secondary-primary/10 blur-3xl desktop:right-10"
+          />
+        </>
+      )}
 
       {promoBannerEnabled && promoBannerText && (
         <div className="relative bg-accent-primary px-4 py-2 text-center text-caption font-body font-semibold text-bg-primary">
@@ -78,41 +111,42 @@ export default function Hero({
         </div>
       )}
       <div className={cn(spacing.containerPadding, 'relative mx-auto grid max-w-[1440px] grid-cols-1 items-center gap-12 py-20 tablet:py-24 desktop:grid-cols-2 desktop:py-32')}>
-        <motion.div
-          initial={fadeUp.initial}
-          animate={fadeUp.animate}
-          transition={{ duration: 0.5, ease: 'easeOut' }}
-        >
-          <div className={cn(flex.center, 'w-fit gap-2 rounded-full border border-accent-primary/30 bg-accent-primary/10 px-4 py-1.5')}>
+        <HeroReveal>
+          <HeroRevealItem className={cn(flex.center, 'w-fit gap-2 rounded-full border border-accent-primary/30 bg-accent-primary/10 px-4 py-1.5')}>
             <ShieldCheck size={16} className="text-accent-primary" aria-hidden="true" />
             <span className="text-label-sm font-body font-medium text-accent-primary">Professionally tested &amp; graded</span>
-          </div>
+          </HeroRevealItem>
 
-          <InlineEditableText
-            as="h1"
-            value={headline}
-            onSave={(v) => saveField('heroHeadline', v)}
-            multiline
-            className="mt-6 text-display-2 font-heading font-bold text-neutral-white tablet:text-display-1"
-          />
+          <HeroRevealItem>
+            <InlineEditableText
+              as="h1"
+              value={headline}
+              onSave={(v) => saveField('heroHeadline', v)}
+              multiline
+              className="mt-6 text-display-2 font-heading font-bold text-neutral-white tablet:text-display-1"
+            />
+          </HeroRevealItem>
 
-          <InlineEditableText
-            as="p"
-            value={subheadline}
-            onSave={(v) => saveField('heroSubheadline', v)}
-            multiline
-            className="mt-6 max-w-xl text-body-lg font-body text-neutral-light-gray"
-          />
+          <HeroRevealItem>
+            <InlineEditableText
+              as="p"
+              value={subheadline}
+              onSave={(v) => saveField('heroSubheadline', v)}
+              multiline
+              className="mt-6 max-w-xl text-body-lg font-body text-neutral-light-gray"
+            />
+          </HeroRevealItem>
 
-          <div className="mt-8 flex flex-col gap-4 tablet:flex-row">
+          <HeroRevealItem className="mt-8 flex flex-col gap-4 tablet:flex-row">
             {editModeOn ? (
               <span className={cn(buttonVariants.primary, spacing.buttonPadding, 'inline-flex items-center justify-center text-body-md')}>
                 <InlineEditableText value={ctaLabel} onSave={(v) => saveField('heroCtaLabel', v)} className="text-body-md" />
               </span>
             ) : (
               <Link
+                ref={magneticCtaRef}
                 href="/shop"
-                className={cn(buttonVariants.primary, spacing.buttonPadding, 'inline-flex items-center justify-center text-body-md')}
+                className={cn(buttonVariants.primary, spacing.buttonPadding, 'inline-flex items-center justify-center text-body-md will-change-transform')}
               >
                 {ctaLabel}
               </Link>
@@ -123,18 +157,34 @@ export default function Hero({
             >
               How Refurbishment Works
             </Link>
-          </div>
-        </motion.div>
+          </HeroRevealItem>
+        </HeroReveal>
 
         <motion.div
           initial={prefersReducedMotion ? {} : { opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.6, ease: 'easeOut', delay: 0.1 }}
-          className="relative aspect-square w-full max-w-md justify-self-center rounded-xl border border-neutral-titanium/20 bg-gradient-to-br from-accent-primary/20 via-secondary-primary/10 to-bg-tertiary shadow-elevation desktop:justify-self-end"
-          role="img"
-          aria-label="Showcase of refurbished MacBook, iPhone, and iPad devices"
-        />
+          className="justify-self-center desktop:justify-self-end"
+        >
+          <HoverTilt
+            maxTilt={6}
+            className="relative aspect-square w-full max-w-md rounded-xl border border-neutral-titanium/20 bg-gradient-to-br from-accent-primary/20 via-secondary-primary/10 to-bg-tertiary shadow-elevation backdrop-blur-sm"
+            role="img"
+            aria-label="Showcase of refurbished MacBook, iPhone, and iPad devices"
+          />
+        </motion.div>
       </div>
+
+      {!prefersReducedMotion && (
+        <motion.div
+          aria-hidden="true"
+          className="pointer-events-none absolute bottom-6 left-1/2 -translate-x-1/2 text-neutral-silver/60"
+          animate={{ y: [0, 8, 0] }}
+          transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+        >
+          <ChevronDown size={22} />
+        </motion.div>
+      )}
     </section>
   );
 }

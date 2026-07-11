@@ -3,8 +3,10 @@
 import { useState } from 'react';
 import type { PublicProduct } from '@/types/product';
 import { PRODUCT_GRADE_LABELS } from '@/types/product';
-import { buttonVariants, cardVariants, cn, spacing } from '@/design';
+import { buttonVariants, cn, spacing } from '@/design';
 import { useCart } from '@/lib/cart/CartContext';
+import GlassCard from '@/components/animations/GlassCard';
+import WishlistButton from './WishlistButton';
 
 const AVAILABILITY_LABEL: Record<PublicProduct['availability'], string> = {
   'in-stock': 'In stock',
@@ -23,12 +25,16 @@ export default function ProductCard({ product }: { product: PublicProduct }) {
   }
 
   return (
-    <div className={cn(cardVariants.base, 'flex flex-col')}>
+    <GlassCard className="flex flex-col p-6">
       <div
         role="img"
         aria-label={product.imageAlt}
-        className={cn('aspect-[4/3] w-full rounded-md bg-gradient-to-br', product.imageColor)}
-      />
+        className={cn('relative aspect-[4/3] w-full rounded-md bg-gradient-to-br', product.imageColor)}
+      >
+        <div className="absolute right-2 top-2">
+          <WishlistButton productId={product.id} />
+        </div>
+      </div>
       <div className="mt-4 flex items-center justify-between gap-2">
         <span className="w-fit rounded-full bg-bg-primary px-3 py-1 text-caption font-body text-accent-primary">
           {PRODUCT_GRADE_LABELS[product.grade]}
@@ -57,6 +63,6 @@ export default function ProductCard({ product }: { product: PublicProduct }) {
       >
         {ordersPaused ? 'Ordering paused' : product.availability === 'out-of-stock' ? 'Out of stock' : added ? 'Added to cart' : 'Quick Add'}
       </button>
-    </div>
+    </GlassCard>
   );
 }

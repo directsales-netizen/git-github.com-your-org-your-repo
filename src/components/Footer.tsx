@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Instagram, Linkedin, Twitter, Youtube } from 'lucide-react';
 import Logo from '@/components/Logo';
 import { accessibility, cn } from '@/design';
+import Fade from '@/components/animations/Fade';
 
 const FOOTER_COLUMNS = [
   {
@@ -55,7 +56,7 @@ export default function Footer() {
   return (
     <footer className="border-t border-neutral-titanium/20 bg-bg-secondary">
       <div className="mx-auto max-w-[1440px] px-6 py-16 tablet:px-8 desktop:px-12">
-        <div className="grid grid-cols-1 gap-10 tablet:grid-cols-2 desktop:grid-cols-4">
+        <Fade variant="up" amount={0.1} className="grid grid-cols-1 gap-10 tablet:grid-cols-2 desktop:grid-cols-4">
           <div>
             <Link href="/" className={cn(accessibility.focusRing, 'rounded-sm')}>
               <Logo variant="lockup" />
@@ -96,7 +97,7 @@ export default function Footer() {
               </ul>
             </div>
           ))}
-        </div>
+        </Fade>
 
         <div className="mt-12 flex flex-col gap-4 border-t border-neutral-titanium/20 pt-6 text-body-xs font-body text-neutral-light-gray tablet:flex-row tablet:items-center tablet:justify-between">
           <p>&copy; {new Date().getFullYear()} Premium TechNoir. All rights reserved.</p>

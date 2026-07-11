@@ -3,6 +3,8 @@
 import { useState, type FormEvent } from 'react';
 import { CheckCircle2, XCircle } from 'lucide-react';
 import { buttonVariants, cn, inputVariants, spacing } from '@/design';
+import Fade from '@/components/animations/Fade';
+import GlassCard from '@/components/animations/GlassCard';
 
 type Status = 'idle' | 'success' | 'error';
 
@@ -24,7 +26,8 @@ export default function NewsletterSignup() {
 
   return (
     <section className={cn(spacing.containerPadding, spacing.sectionMargin, 'mx-auto max-w-[1440px]')}>
-      <div className="mx-auto max-w-xl rounded-xl border border-neutral-titanium/20 bg-bg-secondary p-8 text-center tablet:p-12">
+      <Fade variant="scale" className="mx-auto max-w-xl">
+      <GlassCard className="p-8 text-center tablet:p-12">
         <h2 className="text-h3 font-heading font-bold text-neutral-white">Stay in the Loop</h2>
         <p className="mt-3 text-body-md font-body text-neutral-light-gray">
           Get early access to new inventory, sustainability updates, and member-only offers. No spam, ever.
@@ -60,7 +63,8 @@ export default function NewsletterSignup() {
         <p className="mt-4 text-caption font-body text-neutral-gray">
           We respect your privacy. Unsubscribe at any time.
         </p>
-      </div>
+      </GlassCard>
+      </Fade>
     </section>
   );
 }
