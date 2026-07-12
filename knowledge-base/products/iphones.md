@@ -1,0 +1,14 @@
+# iPhones
+
+One of six categories this store sells (MacBooks, iMacs, iPads, iPhones, Windows PCs, Accessories).
+
+**Never state a specific model, spec, price, or stock status from memory.** Always call `search_products` (category: "iPhones") for what's actually available right now — this file explains the grading system, not current inventory.
+
+## Condition grading (applies to every device we sell)
+
+- **Grade A · Like New** — minimal signs of use, 85%+ battery health, near-perfect screen, full original accessories included.
+- **Grade B · Good** — light signs of use, 75–85% battery health, excellent screen.
+- **Grade C · Fair** — visible signs of use, 65–74% battery health, good screen condition.
+- **Grade D · Acceptable** — heavy signs of use, 50–64% battery health, fully functional, limited included accessories.
+
+Battery health specifically matters most for iPhone buyers asking about longevity — if a customer asks how long a battery will last, point to the grade's battery-health range rather than estimating hours of use, which depends heavily on individual usage patterns.

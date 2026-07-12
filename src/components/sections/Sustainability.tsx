@@ -3,6 +3,7 @@ import { IMPACT_METRICS } from '@/lib/sustainability';
 import { cn, grid, spacing } from '@/design';
 import Fade from '@/components/animations/Fade';
 import GlassCard from '@/components/animations/GlassCard';
+import ImpactCounter from '@/components/animations/ImpactCounter';
 
 export default function Sustainability() {
   return (
@@ -29,7 +30,7 @@ export default function Sustainability() {
           {IMPACT_METRICS.map((metric, index) => (
             <Fade key={metric.label} variant="right" transition={{ delay: index * 0.08 }}>
               <GlassCard className="p-6 text-center">
-                <p className="text-h3 font-heading font-bold text-accent-primary">{metric.value}</p>
+                <ImpactCounter value={metric.value} format={metric.format} className="text-h3 font-heading font-bold text-accent-primary" />
                 <p className="mt-2 text-body-sm font-body text-neutral-silver">{metric.label}</p>
               </GlassCard>
             </Fade>

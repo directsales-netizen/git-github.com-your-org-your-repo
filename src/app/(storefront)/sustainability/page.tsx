@@ -6,6 +6,7 @@ import { buttonVariants, cn, grid, spacing } from '@/design';
 import Fade from '@/components/animations/Fade';
 import GlassCard from '@/components/animations/GlassCard';
 import GlassReveal from '@/components/animations/GlassReveal';
+import ImpactCounter from '@/components/animations/ImpactCounter';
 import ParallaxLayer from '@/components/animations/ParallaxLayer';
 import RefurbishmentPinSection from './RefurbishmentPinSection';
 
@@ -41,7 +42,7 @@ export default function SustainabilityPage() {
         <div className={cn(grid.threeCol, 'relative')}>
           {IMPACT_METRICS.map((metric) => (
             <GlassReveal key={metric.label} className="p-6 text-center">
-              <p className="text-h3 font-heading font-bold text-accent-primary">{metric.value}</p>
+              <ImpactCounter value={metric.value} format={metric.format} className="text-h3 font-heading font-bold text-accent-primary" />
               <p className="mt-2 text-body-sm font-body text-neutral-silver">{metric.label}</p>
             </GlassReveal>
           ))}

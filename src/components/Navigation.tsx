@@ -10,7 +10,7 @@ import { accessibility, cn, flex } from '@/design';
 import Logo from '@/components/Logo';
 import MobileMenu from '@/components/MobileMenu';
 import { useCart } from '@/lib/cart/CartContext';
-import { useScrolled } from '@/components/animations/NavbarMotion';
+import { useHideOnScroll, useScrolled } from '@/components/animations/NavbarMotion';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 
 export default function Navigation({ isAuthenticated = false }: { isAuthenticated?: boolean }) {
@@ -22,6 +22,11 @@ export default function Navigation({ isAuthenticated = false }: { isAuthenticate
   const accountRef = useRef<HTMLDivElement>(null);
   const scrolled = useScrolled(8);
   const reducedMotion = useReducedMotion();
+  const hideOnScroll = useHideOnScroll();
+  // Reduced-motion users keep an always-visible nav — hiding it entirely,
+  // even instantly, trades a screen-space nicety for disorientation risk
+  // that isn't worth it for a purely aesthetic behavior.
+  const isHidden = hideOnScroll && !reducedMotion;
 
   async function handleLogout() {
     setIsAccountOpen(false);
@@ -55,6 +60,7 @@ export default function Navigation({ isAuthenticated = false }: { isAuthenticate
       <header
         className={cn(
           'sticky top-0 z-fixed border-b transition-all duration-300',
+          isHidden && '-translate-y-full',
           scrolled
             ? 'border-neutral-titanium/20 bg-bg-primary/80 shadow-elevation backdrop-blur-xl'
             : 'border-transparent bg-bg-primary/95 backdrop-blur'

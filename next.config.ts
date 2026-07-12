@@ -37,6 +37,15 @@ const nextConfig: NextConfig = {
   // reduction in framework fingerprinting for an attacker doing recon.
   poweredByHeader: false,
 
+  // src/lib/chat/generateAssistantReply.ts recursively reads knowledge-base/**
+  // via fs.readdirSync/readFileSync at request time — Vercel's serverless
+  // file tracer can't always detect a recursive directory walk statically,
+  // so without this the folder can silently work in local dev (whole repo
+  // on disk) but be missing from the deployed function bundle.
+  outputFileTracingIncludes: {
+    '/api/chat': ['./knowledge-base/**/*'],
+  },
+
   async redirects() {
     return [
       {

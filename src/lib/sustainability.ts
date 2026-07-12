@@ -1,13 +1,25 @@
+/**
+ * A serializable format key, not a function — this data crosses the
+ * Server->Client boundary (consumed from Server Components), and RSC can't
+ * serialize function props. src/components/animations/ImpactCounter.tsx
+ * (a Client Component) maps this key to an actual formatter internally.
+ */
+export type ImpactMetricFormat = 'count-plus' | 'pounds' | 'millions-pounds';
+
 export interface ImpactMetric {
-  value: string;
+  /** Real number, not a display string — lets Counter.tsx animate it. */
+  value: number;
   label: string;
+  format: ImpactMetricFormat;
 }
 
 // Placeholder figures — replace with verified sustainability metrics before launch.
+// (Display format preserved exactly from the previous string values — this is a
+// data-shape change to enable Counter's count-up animation, not a value change.)
 export const IMPACT_METRICS: ImpactMetric[] = [
-  { value: '48,000+', label: 'Devices given a second life' },
-  { value: '620,000 lbs', label: 'E-waste kept out of landfills' },
-  { value: '3.2M lbs', label: 'CO2 avoided vs. new manufacturing' },
+  { value: 48000, label: 'Devices given a second life', format: 'count-plus' },
+  { value: 620000, label: 'E-waste kept out of landfills', format: 'pounds' },
+  { value: 3200000, label: 'CO2 avoided vs. new manufacturing', format: 'millions-pounds' },
 ];
 
 export interface RefurbishmentStep {
