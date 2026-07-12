@@ -17,17 +17,17 @@ export async function POST(request: NextRequest) {
   const prepared = await prepareDirectCheckout(request, body);
   if (!prepared.ok) return prepared.response;
 
-  const { email, account, items: verifiedItems, subtotal, notes, phone, shippingAddress, clientIp } = prepared;
+  const { email, name, account, items: verifiedItems, subtotal, notes, phone, shippingAddress, clientIp } = prepared;
 
   const { stripe, response } = requireStripeConfigured();
   if (!stripe) return response;
 
-  const name = account.name;
-
   // Reuse the account's Stripe Customer across visits (creating it on first
   // checkout) so Stripe can securely store the payment method and offer it
   // back on return — customers never re-type card details after visit one.
-  let stripeCustomerId = account.stripeCustomerId;
+  // Guest checkouts (account === null) always get a fresh Stripe Customer;
+  // there's no account record to persist the ID back onto.
+  let stripeCustomerId = account?.stripeCustomerId;
   if (!stripeCustomerId) {
     const customer = await stripe.customers.create({ email, name });
     stripeCustomerId = customer.id;

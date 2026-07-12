@@ -31,11 +31,13 @@ export default async function AdminDashboardLayout({ children }: { children: Rea
         id: `request-${r.id}`,
         message: `New ${REQUEST_KIND_LABELS[r.kind].toLowerCase()} — ${r.clientName ?? r.email ?? r.phone ?? 'visitor'} (${r.id}).`,
         tone: 'info' as const,
+        href: '/admin/requests',
       })),
     ...lowStock.slice(0, 3).map((product) => ({
       id: `stock-${product.id}`,
       message: `${product.title} is low on stock (${product.stock} left).`,
       tone: 'warning' as const,
+      href: '/admin/inventory',
     })),
     ...appointments
       .filter((a) => a.status === 'pending')
@@ -44,6 +46,7 @@ export default async function AdminDashboardLayout({ children }: { children: Rea
         id: `apt-${a.id}`,
         message: `New ${a.type} request awaiting confirmation.`,
         tone: 'info' as const,
+        href: '/admin/appointments',
       })),
   ];
 

@@ -4,6 +4,7 @@ import { getCustomerSession } from '@/lib/customer/getSession';
 import { findCustomerAccountByEmail } from '@/lib/customer/store';
 import { validateCartItems, type ValidatedCartItem } from '@/lib/checkout/validateCartItems';
 import { createRateLimiter } from '@/lib/security/rateLimit';
+import { isSameOriginRequest } from '@/lib/security/sameOrigin';
 import { isIpBlocked } from '@/lib/fraud/blocklists';
 import { recordAttempt } from '@/lib/fraud/velocity';
 import { fingerprintCheckout, recordCheckoutFingerprint } from '@/lib/fraud/duplicateDetection';
@@ -11,11 +12,15 @@ import type { CustomerAccount } from '@/types/customer';
 
 const checkoutLimiter = createRateLimiter(10, 10 * 60 * 1000);
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export interface CheckoutRequestBody {
   // Deliberately no `price` field anywhere in this shape — there is nothing
   // for this route to trust or ignore from the client about cost.
   items?: { productId: string; quantity: number }[];
   email?: string;
+  /** Guest checkout only — logged-in name comes from the account record, never the client. */
+  name?: string;
   shippingAddress?: { line1: string; line2?: string; city: string; state: string; zip: string };
   notes?: string;
   phone?: string;
@@ -25,7 +30,9 @@ export type PrepareCheckoutResult =
   | {
       ok: true;
       email: string;
-      account: CustomerAccount;
+      name: string;
+      /** null for guest checkout — see settings.requireAccountForCheckout. */
+      account: CustomerAccount | null;
       items: ValidatedCartItem[];
       subtotal: number;
       notes?: string;
@@ -38,17 +45,24 @@ export type PrepareCheckoutResult =
 /**
  * Shared gating for every direct-checkout payment route (Stripe PaymentIntent
  * creation, PayPal Order creation) — rate limit, cart/address presence,
- * orders-paused/inquiry-only-mode settings, the account + email-verified
- * requirement (no guest checkout on this site regardless of payment
- * provider — see src/app/api/checkout/session/route.ts's original comment),
- * and the server-side price/stock re-validation that is the entire
- * tamper-prevention mechanism for both providers. Extracted so a second
- * (PayPal) payment route doesn't re-implement this ~40-line chain.
+ * orders-paused/inquiry-only-mode settings, identity resolution (logged-in
+ * account or guest — gated by settings.requireAccountForCheckout, see
+ * resolveIdentity below), and the server-side price/stock re-validation
+ * that is the entire tamper-prevention mechanism for both providers.
+ * Extracted so a second (PayPal) payment route doesn't re-implement this
+ * ~40-line chain.
  */
 export async function prepareDirectCheckout(request: NextRequest, body: CheckoutRequestBody): Promise<PrepareCheckoutResult> {
   const ip = request.headers.get('x-forwarded-for') ?? 'unknown';
   if (checkoutLimiter.isRateLimited(ip)) {
     return { ok: false, response: NextResponse.json({ error: 'Too many attempts. Try again in a few minutes.' }, { status: 429 }) };
+  }
+
+  // Defense-in-depth on top of SameSite=Lax session cookies (which already
+  // block cross-site requests from ever carrying the session) — rejects
+  // any request whose own Origin/Referer points somewhere else entirely.
+  if (!isSameOriginRequest(request)) {
+    return { ok: false, response: NextResponse.json({ error: 'Invalid request origin.' }, { status: 403 }) };
   }
 
   // The one and only pre-payment hard block — a deliberate admin decision
@@ -78,20 +92,9 @@ export async function prepareDirectCheckout(request: NextRequest, body: Checkout
     return { ok: false, response: NextResponse.json({ error: 'Direct checkout is disabled. Please submit a purchase inquiry instead.' }, { status: 503 }) };
   }
 
-  // Payment is only ever allowed through a verified account — there is no
-  // guest checkout path on this site, for any payment provider. Phone
-  // verification doesn't exist yet in this app, so email verification is
-  // the enforced credential.
-  const customerSession = await getCustomerSession();
-  if (!customerSession) {
-    return { ok: false, response: NextResponse.json({ error: 'An account is required to check out.' }, { status: 401 }) };
-  }
-
-  const email = customerSession.sub;
-  const account = await findCustomerAccountByEmail(email);
-  if (!account?.emailVerified) {
-    return { ok: false, response: NextResponse.json({ error: 'Please verify your email before completing checkout.' }, { status: 403 }) };
-  }
+  const identity = await resolveIdentity(body, settings.requireAccountForCheckout);
+  if (!identity.ok) return identity;
+  const { email, name, account } = identity;
 
   // --- The entire tamper-prevention mechanism lives here: every
   // price/title/stock check comes from a fresh server-side catalog lookup,
@@ -112,6 +115,7 @@ export async function prepareDirectCheckout(request: NextRequest, body: Checkout
   return {
     ok: true,
     email,
+    name,
     account,
     items: validation.items,
     subtotal: validation.subtotal,
@@ -120,4 +124,43 @@ export async function prepareDirectCheckout(request: NextRequest, body: Checkout
     shippingAddress: body.shippingAddress,
     clientIp: ip,
   };
+}
+
+type IdentityResult =
+  | { ok: true; email: string; name: string; account: CustomerAccount | null }
+  | { ok: false; response: NextResponse };
+
+/**
+ * Logged-in customers always use their account (email verification still
+ * required — the one identity guarantee this app can make). Otherwise,
+ * guest checkout is allowed unless an admin has turned
+ * settings.requireAccountForCheckout on, in which case a session is
+ * mandatory. Guest identity comes straight from the request body — there is
+ * no account record to look up, so no email-verification step applies to it.
+ */
+async function resolveIdentity(body: CheckoutRequestBody, requireAccount: boolean): Promise<IdentityResult> {
+  const customerSession = await getCustomerSession();
+  if (customerSession) {
+    const email = customerSession.sub;
+    const account = await findCustomerAccountByEmail(email);
+    if (!account?.emailVerified) {
+      return { ok: false, response: NextResponse.json({ error: 'Please verify your email before completing checkout.' }, { status: 403 }) };
+    }
+    return { ok: true, email, name: account.name, account };
+  }
+
+  if (requireAccount) {
+    return { ok: false, response: NextResponse.json({ error: 'An account is required to check out.' }, { status: 401 }) };
+  }
+
+  const guestEmail = body.email?.trim().toLowerCase();
+  const guestName = body.name?.trim();
+  if (!guestEmail || !EMAIL_PATTERN.test(guestEmail)) {
+    return { ok: false, response: NextResponse.json({ error: 'A valid email address is required.' }, { status: 400 }) };
+  }
+  if (!guestName) {
+    return { ok: false, response: NextResponse.json({ error: 'Your name is required.' }, { status: 400 }) };
+  }
+
+  return { ok: true, email: guestEmail, name: guestName, account: null };
 }

@@ -55,6 +55,8 @@ export default function CheckoutClient({
 
   const [address, setAddress] = useState<CheckoutAddress>(emptyAddress);
   const [phone, setPhone] = useState('');
+  const [guestName, setGuestName] = useState('');
+  const [guestEmail, setGuestEmail] = useState('');
   const [billingSameAsShipping, setBillingSameAsShipping] = useState(true);
   const [billingAddress, setBillingAddress] = useState<CheckoutAddress>(emptyAddress);
   const [notes, setNotes] = useState('');
@@ -112,7 +114,9 @@ export default function CheckoutClient({
     );
   }
 
-  const email = prefillEmail ?? '';
+  const email = isAuthenticated ? (prefillEmail ?? '') : guestEmail;
+  const name = isAuthenticated ? prefillName : guestName;
+  const isGuestContactComplete = isAuthenticated || (guestName.trim() !== '' && guestEmail.trim() !== '');
 
   async function handleContinueToPayment() {
     setBillingDone(true);
@@ -129,6 +133,7 @@ export default function CheckoutClient({
         body: JSON.stringify({
           items: items.map((item) => ({ productId: item.productId, quantity: item.quantity })),
           email,
+          name: isAuthenticated ? undefined : name,
           shippingAddress: toApiAddress(address),
           notes,
           phone,
@@ -155,6 +160,8 @@ export default function CheckoutClient({
       body: JSON.stringify({
         items: items.map((item) => ({ productId: item.productId, quantity: item.quantity })),
         shippingAddress: toApiAddress(address),
+        email: isAuthenticated ? undefined : email,
+        name: isAuthenticated ? undefined : name,
       }),
     });
 
@@ -170,7 +177,7 @@ export default function CheckoutClient({
   }
 
   const billingDetails: BillingDetails = {
-    name: prefillName || email,
+    name: name || email,
     email,
     address: {
       line1: (billingSameAsShipping ? address : billingAddress).line1,
@@ -185,10 +192,20 @@ export default function CheckoutClient({
   return (
     <div className="grid grid-cols-1 gap-8 desktop:grid-cols-[1.6fr_1fr] desktop:items-start">
       <div className="flex flex-col gap-4">
-        <div className={cn(cardVariants.minimal, 'text-body-sm font-body text-neutral-light-gray')}>
-          Signed in as <span className="font-heading font-semibold text-neutral-white">{prefillName || email}</span>
-          {prefillName && <span className="text-neutral-silver"> · {email}</span>}
-        </div>
+        {isAuthenticated ? (
+          <div className={cn(cardVariants.minimal, 'text-body-sm font-body text-neutral-light-gray')}>
+            Signed in as <span className="font-heading font-semibold text-neutral-white">{prefillName || email}</span>
+            {prefillName && <span className="text-neutral-silver"> · {email}</span>}
+          </div>
+        ) : (
+          <div className={cn(cardVariants.minimal, 'text-body-sm font-body text-neutral-light-gray')}>
+            Checking out as a guest.{' '}
+            <Link href="/login?from=/checkout" className="text-accent-primary hover:underline">
+              Log in
+            </Link>{' '}
+            if you have an account.
+          </div>
+        )}
 
         <AccordionSection
           title="Shipping"
@@ -203,7 +220,12 @@ export default function CheckoutClient({
             onChange={setAddress}
             phone={phone}
             onPhoneChange={setPhone}
-            canContinue={isAddressComplete(address)}
+            canContinue={isAddressComplete(address) && isGuestContactComplete}
+            guestContact={
+              isAuthenticated
+                ? undefined
+                : { name: guestName, email: guestEmail, onNameChange: setGuestName, onEmailChange: setGuestEmail }
+            }
             onContinue={() => {
               setShippingDone(true);
               setActiveStep('billing');
@@ -258,6 +280,8 @@ export default function CheckoutClient({
                 shippingAddress={address}
                 notes={notes}
                 phone={phone}
+                guestEmail={isAuthenticated ? undefined : guestEmail}
+                guestName={isAuthenticated ? undefined : guestName}
               />
             </div>
           )}

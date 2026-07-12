@@ -21,14 +21,14 @@ export async function POST(request: NextRequest) {
   const configured = requirePayPalConfigured();
   if (!configured.ok) return configured.response;
 
-  const { email, account, items: verifiedItems, subtotal, notes, phone, shippingAddress, clientIp } = prepared;
+  const { email, name, items: verifiedItems, subtotal, notes, phone, shippingAddress, clientIp } = prepared;
 
   try {
     const order = await createPayPalOrder({ amount: subtotal, shippingAddress });
 
     stashPendingCheckout(order.id, {
       email,
-      name: account.name,
+      name,
       items: verifiedItems,
       shippingAddress,
       subtotal,

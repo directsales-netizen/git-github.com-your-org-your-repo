@@ -3,89 +3,30 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import {
-  ChevronDown,
-  ChevronsLeft,
-  ChevronsRight,
-  Gauge,
-  Package,
-  ShoppingCart,
-  Users,
-  MessageSquare,
-  CalendarClock,
-  Gift,
-  FileText,
-  ShieldCheck,
-  Settings,
-  History,
-  Radar,
-  Headset,
-  MonitorSmartphone,
-  Inbox,
-  ClipboardCheck,
-  ShieldAlert,
-  Lock,
-  KeyRound,
-  type LucideIcon,
-} from 'lucide-react';
+import { ChevronDown, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { accessibility, cn } from '@/design';
 import Logo from '@/components/Logo';
 import { useSidebarCollapsed } from '@/hooks/useSidebarCollapsed';
 import type { SessionRole } from '@/lib/admin/session';
-
-interface NavItem {
-  label: string;
-  href: string;
-  icon: LucideIcon;
-}
+import { visibleNavItems, type AdminNavItem } from '@/lib/admin/navItems';
 
 interface NavSection {
   label: string;
-  items: NavItem[];
+  items: AdminNavItem[];
 }
 
-const NAV_SECTIONS: NavSection[] = [
-  { label: 'Overview', items: [{ label: 'Analytics', href: '/admin', icon: Gauge }] },
-  {
-    label: 'Commerce',
-    items: [
-      { label: 'Inventory', href: '/admin/inventory', icon: Package },
-      { label: 'Orders', href: '/admin/orders', icon: ShoppingCart },
-      { label: 'Customers', href: '/admin/customers', icon: Users },
-    ],
-  },
-  {
-    label: 'Engagement',
-    items: [
-      { label: 'Requests', href: '/admin/requests', icon: Inbox },
-      { label: 'AI Chatbot', href: '/admin/chatbot', icon: MessageSquare },
-      { label: 'Appointments', href: '/admin/appointments', icon: CalendarClock },
-      { label: 'Rewards', href: '/admin/rewards', icon: Gift },
-    ],
-  },
-  { label: 'Site', items: [{ label: 'Content', href: '/admin/content', icon: FileText }] },
-  {
-    label: 'System',
-    items: [
-      { label: 'Activity Logs', href: '/admin/logs', icon: History },
-      { label: 'Active Sessions', href: '/admin/sessions', icon: MonitorSmartphone },
-    ],
-  },
-];
-
-const SUPERADMIN_SECTION: NavSection = {
-  label: 'SuperAdmin',
-  items: [
-    { label: 'Users & Roles', href: '/admin/users', icon: ShieldCheck },
-    { label: 'Purchase Inquiries', href: '/admin/purchase-inquiries', icon: ClipboardCheck },
-    { label: 'Settings', href: '/admin/settings', icon: Settings },
-    { label: 'Credentials', href: '/admin/settings/credentials', icon: KeyRound },
-    { label: 'Security', href: '/admin/security', icon: Lock },
-    { label: 'Visitor Analytics', href: '/admin/visitor-analytics', icon: Radar },
-    { label: 'Fraud Review', href: '/admin/fraud', icon: ShieldAlert },
-    { label: 'Live Chat Takeover', href: '/admin/chatbot/live', icon: Headset },
-  ],
-};
+function groupBySection(items: AdminNavItem[]): NavSection[] {
+  const order: string[] = [];
+  const bySection = new Map<string, AdminNavItem[]>();
+  for (const item of items) {
+    if (!bySection.has(item.section)) {
+      order.push(item.section);
+      bySection.set(item.section, []);
+    }
+    bySection.get(item.section)!.push(item);
+  }
+  return order.map((label) => ({ label, items: bySection.get(label)! }));
+}
 
 export default function AdminSidebar({ onNavigate, adminRole }: { onNavigate?: () => void; adminRole?: SessionRole }) {
   const pathname = usePathname();
@@ -93,7 +34,7 @@ export default function AdminSidebar({ onNavigate, adminRole }: { onNavigate?: (
   const [closedSections, setClosedSections] = useState<Set<string>>(new Set());
   // Visitor Analytics exposes IP/location/device intelligence — hidden from
   // the nav entirely for non-SuperAdmin roles, not just gated at the route.
-  const sections = adminRole === 'SuperAdmin' ? [...NAV_SECTIONS, SUPERADMIN_SECTION] : NAV_SECTIONS;
+  const sections = groupBySection(visibleNavItems(adminRole));
 
   function toggleSection(label: string) {
     setClosedSections((prev) => {

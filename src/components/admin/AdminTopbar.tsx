@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Bell, LogOut, Menu, Search, User } from 'lucide-react';
 import { accessibility, cn } from '@/design';
 
@@ -9,15 +10,18 @@ export interface AdminNotification {
   id: string;
   message: string;
   tone: 'warning' | 'info';
+  /** Omitted = not clickable (rare — every current notification source links somewhere). */
+  href?: string;
 }
 
 interface AdminTopbarProps {
   adminEmail: string;
   notifications: AdminNotification[];
   onMenuClick: () => void;
+  onSearchClick: () => void;
 }
 
-export default function AdminTopbar({ adminEmail, notifications, onMenuClick }: AdminTopbarProps) {
+export default function AdminTopbar({ adminEmail, notifications, onMenuClick, onSearchClick }: AdminTopbarProps) {
   const router = useRouter();
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -60,15 +64,19 @@ export default function AdminTopbar({ adminEmail, notifications, onMenuClick }: 
         <Menu size={20} aria-hidden="true" />
       </button>
 
-      <div className="relative hidden max-w-sm flex-1 tablet:block">
+      <button
+        type="button"
+        onClick={onSearchClick}
+        aria-label="Open command palette"
+        className={cn(
+          'relative hidden max-w-sm flex-1 items-center gap-2 rounded-md border border-neutral-titanium bg-bg-secondary py-2 pl-9 pr-3 text-left text-body-sm font-body text-neutral-silver/60 hover:border-neutral-titanium/60 tablet:flex',
+          accessibility.focusRing
+        )}
+      >
         <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-silver" aria-hidden="true" />
-        <input
-          type="search"
-          placeholder="Search orders, products, customers…"
-          aria-label="Search admin dashboard"
-          className="w-full rounded-md border border-neutral-titanium bg-bg-secondary py-2 pl-9 pr-3 text-body-sm font-body text-neutral-white placeholder-neutral-silver/60 focus-visible:border-2 focus-visible:border-accent-primary focus-visible:outline-none"
-        />
-      </div>
+        <span className="flex-1">Jump to a page…</span>
+        <kbd className="rounded border border-neutral-titanium/30 px-1.5 py-0.5 text-caption text-neutral-silver">⌘K</kbd>
+      </button>
 
       <div className="ml-auto flex items-center gap-1">
         <div className="relative" ref={notifRef}>
@@ -90,15 +98,31 @@ export default function AdminTopbar({ adminEmail, notifications, onMenuClick }: 
               {notifications.length === 0 ? (
                 <p className="px-3 py-4 text-center text-body-sm font-body text-neutral-silver">You&apos;re all caught up.</p>
               ) : (
-                notifications.map((n) => (
-                  <div key={n.id} className="flex items-start gap-2 rounded-md px-3 py-2 text-body-sm font-body text-neutral-light-gray hover:bg-bg-primary">
+                notifications.map((n) => {
+                  const dot = (
                     <span
                       aria-hidden="true"
                       className={cn('mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full', n.tone === 'warning' ? 'bg-warning' : 'bg-info')}
                     />
-                    {n.message}
-                  </div>
-                ))
+                  );
+                  return n.href ? (
+                    <Link
+                      key={n.id}
+                      href={n.href}
+                      role="menuitem"
+                      onClick={() => setIsNotifOpen(false)}
+                      className={cn('flex items-start gap-2 rounded-md px-3 py-2 text-body-sm font-body text-neutral-light-gray hover:bg-bg-primary hover:text-accent-primary', accessibility.focusRing)}
+                    >
+                      {dot}
+                      {n.message}
+                    </Link>
+                  ) : (
+                    <div key={n.id} className="flex items-start gap-2 rounded-md px-3 py-2 text-body-sm font-body text-neutral-light-gray">
+                      {dot}
+                      {n.message}
+                    </div>
+                  );
+                })
               )}
             </div>
           )}

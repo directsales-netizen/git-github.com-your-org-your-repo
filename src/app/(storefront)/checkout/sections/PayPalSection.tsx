@@ -13,6 +13,9 @@ interface Props {
   shippingAddress: CheckoutAddress;
   notes: string;
   phone: string;
+  /** Guest checkout only — omitted for logged-in customers, whose identity comes from their session server-side. */
+  guestEmail?: string;
+  guestName?: string;
 }
 
 /**
@@ -24,7 +27,7 @@ interface Props {
  * capture route's own response, not this client code, is what decides
  * whether the order actually gets fulfilled.
  */
-export default function PayPalSection({ items, shippingAddress, notes, phone }: Props) {
+export default function PayPalSection({ items, shippingAddress, notes, phone, guestEmail, guestName }: Props) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
 
@@ -52,7 +55,7 @@ export default function PayPalSection({ items, shippingAddress, notes, phone }: 
             const response = await fetch('/api/checkout/paypal/order', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ items, shippingAddress, notes, phone }),
+              body: JSON.stringify({ items, shippingAddress, notes, phone, email: guestEmail, name: guestName }),
             });
             const data = (await response.json().catch(() => null)) as { orderId?: string; error?: string } | null;
             if (!response.ok || !data?.orderId) {

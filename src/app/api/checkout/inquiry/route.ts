@@ -10,12 +10,16 @@ import { createRateLimiter } from '@/lib/security/rateLimit';
 export const runtime = 'nodejs';
 
 const inquiryLimiter = createRateLimiter(10, 10 * 60 * 1000);
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 interface InquiryRequestBody {
   // Deliberately no `price` field — see the equivalent comment in
   // /api/checkout/session/route.ts. Nothing here is trusted about cost.
   items?: { productId: string; quantity: number }[];
   shippingAddress?: { line1: string; line2?: string; city: string; state: string; zip: string };
+  /** Guest checkout only — see resolveIdentity in prepareCheckout.ts for the equivalent logic on the direct-checkout path. */
+  email?: string;
+  name?: string;
 }
 
 export async function POST(request: NextRequest) {
@@ -44,17 +48,36 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Online ordering is temporarily paused. Please email support or use the AI assistant to place an order.' }, { status: 503 });
   }
 
-  // Same account requirement as direct checkout — a purchase inquiry still
-  // needs a verified identity to review and email back a payment link to.
+  // Logged-in customers use their (email-verified) account. Otherwise, guest
+  // submission is allowed unless an admin has turned on
+  // settings.requireAccountForCheckout — same gate as direct checkout
+  // (src/lib/checkout/prepareCheckout.ts's resolveIdentity), applied here
+  // by hand since this route doesn't go through prepareDirectCheckout
+  // (inquiries never touch a payment provider).
   const customerSession = await getCustomerSession();
-  if (!customerSession) {
-    return NextResponse.json({ error: 'An account is required to submit a purchase request.' }, { status: 401 });
-  }
+  let email: string;
+  let name: string;
 
-  const email = customerSession.sub;
-  const account = await findCustomerAccountByEmail(email);
-  if (!account?.emailVerified) {
-    return NextResponse.json({ error: 'Please verify your email before submitting a purchase request.' }, { status: 403 });
+  if (customerSession) {
+    email = customerSession.sub;
+    const account = await findCustomerAccountByEmail(email);
+    if (!account?.emailVerified) {
+      return NextResponse.json({ error: 'Please verify your email before submitting a purchase request.' }, { status: 403 });
+    }
+    name = account.name;
+  } else if (settings.requireAccountForCheckout) {
+    return NextResponse.json({ error: 'An account is required to submit a purchase request.' }, { status: 401 });
+  } else {
+    const guestEmail = body.email?.trim().toLowerCase();
+    const guestName = body.name?.trim();
+    if (!guestEmail || !EMAIL_PATTERN.test(guestEmail)) {
+      return NextResponse.json({ error: 'A valid email address is required.' }, { status: 400 });
+    }
+    if (!guestName) {
+      return NextResponse.json({ error: 'Your name is required.' }, { status: 400 });
+    }
+    email = guestEmail;
+    name = guestName;
   }
 
   const validation = await validateCartItems(items);
@@ -64,7 +87,7 @@ export async function POST(request: NextRequest) {
 
   const inquiry = await createPurchaseInquiry({
     email,
-    name: account.name,
+    name,
     items: validation.items,
     shippingAddress: body.shippingAddress,
     subtotal: validation.subtotal,
