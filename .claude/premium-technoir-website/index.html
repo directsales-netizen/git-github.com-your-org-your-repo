@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Premium TechNoir — Premium Technology. Smarter Value. Sustainable Impact.</title>
+  <meta name="description" content="Premium TechNoir provides professionally sourced and refurbished technology solutions focused on quality, value, and sustainability. Resale, refurbishment, repair, and recycling." />
+  <meta name="theme-color" content="#38E8E8" />
+  <meta property="og:title" content="Premium TechNoir" />
+  <meta property="og:description" content="Premium Technology. Smarter Value. Sustainable Impact." />
+  <meta property="og:type" content="website" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav">
+      <div class="nav-brand">
+        <span class="brand-name">Premium TechNoir</span>
+      </div>
+      <ul class="nav-links">
+        <li><a href="#services">Services</a></li>
+        <li><a href="#about">About</a></li>
+        <li><a href="#contact">Contact</a></li>
+      </ul>
+      <button class="nav-toggle" aria-label="Toggle menu">&#9776;</button>
+    </nav>
+    <!-- aria-label added to nav via JS for screen readers -->
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-content">
+        <h1 class="hero-title">
+          Technology That Delivers<br />
+          <span class="accent">More Than Performance</span>
+        </h1>
+        <p class="hero-subtitle">
+          Premium TechNoir provides professionally sourced and refurbished technology solutions that help customers save money, reduce electronic waste, and gain access to reliable devices they can trust.
+        </p>
+        <div class="hero-cta">
+          <a href="#services" class="btn btn-primary">Shop Inventory</a>
+          <a href="#services" class="btn btn-outline">Explore Services</a>
+          <a href="#contact" class="btn btn-outline">Contact Us</a>
+        </div>
+      </div>
+      <div class="hero-graphic">
+        <div class="shield-ring ring-1"></div>
+        <div class="shield-ring ring-2"></div>
+        <div class="shield-ring ring-3"></div>
+      </div>
+    </section>
+
+    <section id="services" class="services">
+      <div class="container">
+        <h2 class="section-title">Our <span class="accent">Services</span></h2>
+        <div class="services-grid">
+          <div class="service-card">
+            <div class="service-icon">&#128295;</div>
+            <h3>Refurbishment</h3>
+            <p>Every device is professionally inspected, tested, and restored to reliable working condition before it reaches you.</p>
+          </div>
+          <div class="service-card">
+            <div class="service-icon">&#128187;</div>
+            <h3>Technology Resale</h3>
+            <p>Premium sourced electronics at smarter prices — laptops, phones, tablets, and more with full transparency on condition.</p>
+          </div>
+          <div class="service-card">
+            <div class="service-icon">&#128736;</div>
+            <h3>Repair</h3>
+            <p>Extend the life of your existing devices with honest, reliable repair services and clear upfront pricing.</p>
+          </div>
+          <div class="service-card">
+            <div class="service-icon">&#9851;</div>
+            <h3>Recycling</h3>
+            <p>Responsible disposal and recycling programs that keep electronics out of landfills and reduce e-waste.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="trust">
+      <div class="container">
+        <h2 class="section-title">Why Customers Choose <span class="accent">Premium TechNoir</span></h2>
+        <div class="trust-grid">
+          <div class="trust-item"><span class="trust-check">&#10004;</span><span>Professionally Tested Devices</span></div>
+          <div class="trust-item"><span class="trust-check">&#10004;</span><span>Transparent Product Descriptions</span></div>
+          <div class="trust-item"><span class="trust-check">&#10004;</span><span>Sustainable Technology Solutions</span></div>
+          <div class="trust-item"><span class="trust-check">&#10004;</span><span>Responsive Customer Support</span></div>
+          <div class="trust-item"><span class="trust-check">&#10004;</span><span>Community-Focused Business</span></div>
+          <div class="trust-item"><span class="trust-check">&#10004;</span><span>Responsible Refurbishment Practices</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="about" class="about">
+      <div class="container about-inner">
+        <div class="about-text">
+          <h2 class="section-title">About <span class="accent">Us</span></h2>
+          <p>
+            Premium TechNoir was founded on a simple belief: quality technology should be accessible,
+            affordable, and sustainable. Through responsible sourcing, refurbishment, resale, and
+            recycling, we help extend the life of technology while creating value for customers,
+            supporting our communities, and reducing electronic waste.
+          </p>
+          <p>
+            We are not simply a reseller — we are building a sustainable technology ecosystem
+            rooted in integrity, transparency, and genuine customer success.
+          </p>
+          <p class="tagline-block"><em>Premium Technology. Smarter Value. Sustainable Impact.</em></p>
+        </div>
+        <div class="about-stats">
+          <div class="stat">
+            <span class="stat-number accent">100%</span>
+            <span class="stat-label">Tested & Verified</span>
+          </div>
+          <div class="stat">
+            <span class="stat-number accent">0</span>
+            <span class="stat-label">Hidden Defects</span>
+          </div>
+          <div class="stat">
+            <span class="stat-number accent">24/7</span>
+            <span class="stat-label">Customer Support</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="contact" class="contact">
+      <div class="container">
+        <h2 class="section-title">Get In <span class="accent">Touch</span></h2>
+        <form class="contact-form" id="contactForm" action="https://formspree.io/f/directsales@premiumtechnoir.org" method="POST">
+          <div class="form-row">
+            <input type="text" name="name" placeholder="Your Name" required />
+            <input type="email" name="email" placeholder="Your Email" required />
+          </div>
+          <input type="text" name="subject" placeholder="Subject" />
+          <textarea name="message" rows="5" placeholder="Your Message" required></textarea>
+          <button type="submit" class="btn btn-primary">Send Message</button>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-brand">
+        <span class="brand-name">Premium TechNoir</span>
+        <p class="footer-motto">Premium Technology. Smarter Value. Sustainable Impact.</p>
+      </div>
+      <p class="footer-copy">&copy; 2026 Premium TechNoir. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

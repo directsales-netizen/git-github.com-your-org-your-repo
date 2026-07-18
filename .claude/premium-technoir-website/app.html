@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Premium TechNoir — Pay</title>
+  <link rel="stylesheet" href="app.css" />
+</head>
+<body>
+
+  <!-- Animated background -->
+  <div class="bg" aria-hidden="true">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+    <div class="orb orb-4"></div>
+    <div class="mesh-grid"></div>
+    <div class="noise"></div>
+  </div>
+
+  <div class="scene">
+    <div class="phone">
+
+      <!-- Status bar -->
+      <div class="status-bar">
+        <span class="time" id="clock">9:41</span>
+        <div class="status-icons">
+          <svg width="16" height="11" viewBox="0 0 16 11"><rect x="0" y="4" width="3" height="7" rx="1" fill="currentColor" opacity=".4"/><rect x="4.5" y="2.5" width="3" height="8.5" rx="1" fill="currentColor" opacity=".6"/><rect x="9" y="0" width="3" height="11" rx="1" fill="currentColor"/><rect x="13.5" y="3" width="2.5" height="5" rx="0.5" fill="none" stroke="currentColor" stroke-width="1"/></svg>
+          <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 2.5C10.5 2.5 12.8 3.5 14.4 5.2L16 3.5C13.9 1.3 11.1 0 8 0S2.1 1.3 0 3.5L1.6 5.2C3.2 3.5 5.5 2.5 8 2.5Z" fill="currentColor" opacity=".4"/><path d="M8 5.5C9.7 5.5 11.2 6.2 12.3 7.3L13.9 5.6C12.3 3.9 10.3 3 8 3S3.7 3.9 2.1 5.6L3.7 7.3C4.8 6.2 6.3 5.5 8 5.5Z" fill="currentColor" opacity=".7"/><circle cx="8" cy="10" r="2" fill="currentColor"/></svg>
+          <div class="battery">
+            <div class="battery-fill" style="width:78%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- App content -->
+      <div class="app">
+
+        <!-- Screen: Home -->
+        <div class="screen active" id="screen-home">
+          <div class="app-header">
+            <div class="user-info">
+              <div class="avatar">JD</div>
+              <div>
+                <p class="greeting">Good evening,</p>
+                <p class="username">Jordan Davis</p>
+              </div>
+            </div>
+            <button class="icon-btn notif-btn" aria-label="Notifications">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              <span class="notif-dot"></span>
+            </button>
+          </div>
+
+          <!-- Balance card -->
+          <div class="balance-card">
+            <div class="card-chip"></div>
+            <div class="card-top">
+              <span class="card-label">Total Balance</span>
+              <span class="card-brand">PTN</span>
+            </div>
+            <div class="card-balance">
+              <span class="currency">$</span>
+              <span class="amount" id="balanceAmount">24,830</span>
+              <span class="cents">.50</span>
+            </div>
+            <div class="card-bottom">
+              <div>
+                <p class="card-meta">Card number</p>
+                <p class="card-number">•••• •••• •••• 4291</p>
+              </div>
+              <div class="card-expiry-wrap">
+                <p class="card-meta">Expires</p>
+                <p class="card-number">09/28</p>
+              </div>
+            </div>
+            <div class="card-glow"></div>
+          </div>
+
+          <!-- Quick actions -->
+          <div class="quick-actions">
+            <button class="action-btn" data-action="send">
+              <div class="action-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              </div>
+              <span>Send</span>
+            </button>
+            <button class="action-btn" data-action="receive">
+              <div class="action-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/></svg>
+              </div>
+              <span>Receive</span>
+            </button>
+            <button class="action-btn" data-action="topup">
+              <div class="action-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              </div>
+              <span>Top Up</span>
+            </button>
+            <button class="action-btn" data-action="pay">
+              <div class="action-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+              </div>
+              <span>Pay</span>
+            </button>
+          </div>
+
+          <!-- Spending graph -->
+          <div class="section-header">
+            <span class="section-title">Spending</span>
+            <span class="section-sub">This week</span>
+          </div>
+          <div class="spending-chart">
+            <div class="bars">
+              <div class="bar-wrap"><div class="bar" style="--h:45%"></div><span>Mon</span></div>
+              <div class="bar-wrap"><div class="bar" style="--h:70%"></div><span>Tue</span></div>
+              <div class="bar-wrap"><div class="bar" style="--h:30%"></div><span>Wed</span></div>
+              <div class="bar-wrap"><div class="bar active" style="--h:88%"></div><span>Thu</span></div>
+              <div class="bar-wrap"><div class="bar" style="--h:55%"></div><span>Fri</span></div>
+              <div class="bar-wrap"><div class="bar" style="--h:20%"></div><span>Sat</span></div>
+              <div class="bar-wrap"><div class="bar" style="--h:10%"></div><span>Sun</span></div>
+            </div>
+          </div>
+
+          <!-- Transactions -->
+          <div class="section-header">
+            <span class="section-title">Recent</span>
+            <button class="see-all">See all</button>
+          </div>
+          <div class="transactions">
+            <div class="txn">
+              <div class="txn-icon txn-out">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+              </div>
+              <div class="txn-info">
+                <p class="txn-name">Netflix Premium</p>
+                <p class="txn-date">Today, 2:14 PM</p>
+              </div>
+              <span class="txn-amount out">-$17.99</span>
+            </div>
+            <div class="txn">
+              <div class="txn-icon txn-in">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="17" y1="7" x2="7" y2="17"/><polyline points="17 17 7 17 7 7"/></svg>
+              </div>
+              <div class="txn-info">
+                <p class="txn-name">Salary Deposit</p>
+                <p class="txn-date">Yesterday, 9:00 AM</p>
+              </div>
+              <span class="txn-amount in">+$4,200.00</span>
+            </div>
+            <div class="txn">
+              <div class="txn-icon txn-out">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+              </div>
+              <div class="txn-info">
+                <p class="txn-name">AWS Cloud Services</p>
+                <p class="txn-date">Jun 26, 11:32 AM</p>
+              </div>
+              <span class="txn-amount out">-$243.00</span>
+            </div>
+            <div class="txn">
+              <div class="txn-icon txn-in">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="17" y1="7" x2="7" y2="17"/><polyline points="17 17 7 17 7 7"/></svg>
+              </div>
+              <div class="txn-info">
+                <p class="txn-name">Client Payment — Acme</p>
+                <p class="txn-date">Jun 25, 3:45 PM</p>
+              </div>
+              <span class="txn-amount in">+$1,500.00</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Screen: Send -->
+        <div class="screen" id="screen-send">
+          <div class="modal-header">
+            <button class="back-btn" data-back="home">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <h2>Send Money</h2>
+            <span></span>
+          </div>
+          <div class="send-form">
+            <label class="input-label">Recipient</label>
+            <input class="app-input" type="text" placeholder="Name or address" />
+            <label class="input-label">Amount</label>
+            <div class="amount-input-wrap">
+              <span class="amount-prefix">$</span>
+              <input class="app-input amount-input" type="number" placeholder="0.00" />
+            </div>
+            <label class="input-label">Note (optional)</label>
+            <input class="app-input" type="text" placeholder="What's it for?" />
+            <button class="app-btn">Send Now</button>
+          </div>
+        </div>
+
+        <!-- Screen: Receive -->
+        <div class="screen" id="screen-receive">
+          <div class="modal-header">
+            <button class="back-btn" data-back="home">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <h2>Receive</h2>
+            <span></span>
+          </div>
+          <div class="receive-content">
+            <p class="receive-sub">Share your QR code or address to receive funds</p>
+            <div class="qr-frame">
+              <div class="qr-inner">
+                <div class="qr-grid" id="qrGrid"></div>
+              </div>
+            </div>
+            <p class="wallet-address">PTN · 4A9F · B2C1 · 8E3D</p>
+            <button class="app-btn outline">Copy Address</button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Bottom nav -->
+      <nav class="bottom-nav">
+        <button class="nav-item active" data-screen="home">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          <span>Home</span>
+        </button>
+        <button class="nav-item" data-screen="cards">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+          <span>Cards</span>
+        </button>
+        <button class="nav-item nav-center" data-screen="scan">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </button>
+        <button class="nav-item" data-screen="analytics">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          <span>Stats</span>
+        </button>
+        <button class="nav-item" data-screen="profile">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <span>Profile</span>
+        </button>
+      </nav>
+
+      <!-- Home bar -->
+      <div class="home-bar"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
