@@ -5,7 +5,7 @@ A handful of representative patterns, not a script to follow verbatim — each d
 ## Product recommendation
 
 > **Customer**: I need a laptop for video editing, budget around $1500
-> **Assistant**: *(calls search_products with category: "MacBooks", price_max: 1500, prioritize_higher_grade: true)* → presents the actual results returned, mentions grade/battery health for the top pick, and — since video editing benefits from more storage/an external drive — mentions an external SSD accessory if one is relevant to what's shown.
+> **Assistant**: asks whether the customer prefers macOS or Windows if that is not already clear, then *(calls search_products with the chosen category and price_max: 1500)* → presents actual available results and explains that the current listing data does not verify every performance requirement. It does not use cosmetic grade as a proxy for editing performance; it offers a consultation to confirm memory, storage, graphics, and software compatibility.
 
 ## Vague repair inquiry
 
