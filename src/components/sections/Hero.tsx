@@ -17,6 +17,7 @@ import { useMagnetic } from '@/hooks/useMagnetic';
 import { HeroReveal, HeroRevealItem } from '@/components/animations/HeroReveal';
 import HoverTilt from '@/components/animations/HoverTilt';
 import FloatingElement from '@/components/animations/FloatingElement';
+import TechNoirCubeVisual from './TechNoirCubeVisual';
 
 // Client-only: mounts a WebGL canvas, so it must never run during SSR (and
 // shouldn't block the server-rendered headline/CTA, which are what matters
@@ -164,14 +165,14 @@ export default function Hero({
           initial={prefersReducedMotion ? {} : { opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.6, ease: 'easeOut', delay: 0.1 }}
-          className="justify-self-center desktop:justify-self-end"
+          className="w-full justify-self-center desktop:justify-self-end"
         >
           <HoverTilt
             maxTilt={6}
-            className="relative aspect-square w-full max-w-md rounded-xl border border-neutral-titanium/20 bg-gradient-to-br from-accent-primary/20 via-secondary-primary/10 to-bg-tertiary shadow-elevation backdrop-blur-sm"
-            role="img"
-            aria-label="Showcase of refurbished MacBook, iPhone, and iPad devices"
-          />
+            className="mx-auto w-full max-w-[32rem] desktop:mr-0"
+          >
+            <TechNoirCubeVisual />
+          </HoverTilt>
         </motion.div>
       </div>
 
