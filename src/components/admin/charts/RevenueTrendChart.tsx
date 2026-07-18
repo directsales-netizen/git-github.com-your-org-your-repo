@@ -90,16 +90,16 @@ export default function RevenueTrendChart({ data }: RevenueTrendChartProps) {
           >
             <defs>
               <linearGradient id="revenue-area" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#2FE7F2" stopOpacity="0.25" />
-                <stop offset="100%" stopColor="#2FE7F2" stopOpacity="0" />
+                <stop offset="0%" stopColor="#38E8E8" stopOpacity="0.25" />
+                <stop offset="100%" stopColor="#38E8E8" stopOpacity="0" />
               </linearGradient>
             </defs>
             <path d={areaPath} fill="url(#revenue-area)" stroke="none" />
-            <path d={linePath} fill="none" stroke="#2FE7F2" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+            <path d={linePath} fill="none" stroke="#38E8E8" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
             {hovered && (
               <>
                 <line x1={hovered.x} y1={PADDING} x2={hovered.x} y2={HEIGHT - PADDING} stroke="#6C757D" strokeWidth={1} strokeDasharray="3,3" />
-                <circle cx={hovered.x} cy={hovered.y} r={4} fill="#2FE7F2" stroke="#08131F" strokeWidth={2} />
+                <circle cx={hovered.x} cy={hovered.y} r={4} fill="#38E8E8" stroke="#1A1A1A" strokeWidth={2} />
               </>
             )}
           </svg>

@@ -22,7 +22,7 @@ function ShieldMark({ size }: { size: number }) {
     >
       <defs>
         <linearGradient id="ptn-shield-gradient" x1="0" y1="0" x2="48" y2="48">
-          <stop offset="0%" stopColor="#2FE7F2" />
+          <stop offset="0%" stopColor="#38E8E8" />
           <stop offset="100%" stopColor="#001A4D" />
         </linearGradient>
       </defs>

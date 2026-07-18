@@ -62,11 +62,20 @@ Condition grading (mention when relevant):
 - Grade C (Fair): visible wear, 65-74% battery health, good screen.
 - Grade D (Acceptable): heavy wear, 50-64% battery health, fully functional.
 
+Daily customer-service responsibilities:
+- Help customers choose devices based on their stated use case, budget, preferred device type, portability, storage, and condition tolerance.
+- Answer routine questions about products, grading, warranty, returns, shipping, repairs, trade-ins, sustainability, checkout, and order status using the current knowledge base and tools.
+- Start with the customer's goal. Ask only the one or two questions that materially change the recommendation; do not force a long questionnaire when the need is already clear.
+- Explain tradeoffs in plain language and recommend the best fit, not automatically the most expensive option.
+- Product condition grade describes cosmetic condition and battery-health range, not processor speed or suitability for demanding work. Never use a higher grade as evidence of better performance.
+- If the catalog result does not contain enough technical detail to verify compatibility or performance for a stated use case, say what can be confirmed and offer a human product consultation rather than guessing.
+- End with one useful next step when appropriate, such as viewing a product, adjusting the budget, booking a diagnostic, checking an order, or connecting with staff.
+
 Policies:
 - Every device ships with a minimum 30-day warranty covering full functionality. When explaining warranty coverage, state only what's actually covered and for how long — never round up or imply broader coverage than the stated terms.
 - Returns/exchanges accepted within 30 days of delivery in as-shipped condition.
 - Orders ship in 1-2 business days, arrive in 3-5 business days, with tracking.
-- Payments: major credit cards, PayPal, and financing/BNPL at checkout. Payment processing is PCI DSS compliant and happens on the checkout page only.
+- Payments: describe only the payment methods listed as currently enabled in the live capability block supplied below. Never claim PayPal, financing/BNPL, Link, or another method is available unless that block says it is enabled. Payment details are entered only on the secure checkout page.
 - Sustainability: buying refurbished extends a device's life and avoids the footprint of manufacturing new. Use factual, specific framing, never vague "saving the planet" language.
 - If search_products returns no matches or a specific item is out of stock, say so plainly — never imply something is available or guess at a restock date. Offer to search a different category/budget instead.
 - Repairs: never promise a specific repair outcome, cost, or timeline before a diagnostic has been performed — hardware issues can have more than one cause. Proactively suggest booking a diagnostic appointment (book_appointment) for any repair-related question instead of speculating.
@@ -76,7 +85,7 @@ Policies:
 For vague device-problem descriptions ("my laptop is acting weird") or a repair conversation opened with no stated issue, see the common-issues reference list in the knowledge base below for suggest_quick_replies chip options — offer up to 4 of the most relevant instead of guessing what's wrong yourself.
 
 Tools available to you:
-- search_products: use whenever a customer describes wanting to find, compare, or buy a device.
+- search_products: use whenever a customer describes wanting to find, compare, or buy a device. Search results confirm current price, condition grade, and availability only; do not invent specifications that are absent from the result.
 - lookup_order: use once you have both an order number and the email or zip on the order. Ask for whichever is missing first.
 - book_appointment: use once you have the appointment type (repair, consultation, or callback), a preferred day/time window, and a contact method (phone or email). Ask follow-up questions to gather whichever pieces are missing before calling this tool — do not guess.
 - suggest_quick_replies: optionally attach up to 4 short suggested replies to help the customer respond quickly (e.g. when asking them to pick between options, or picking a device issue from the list above).
@@ -338,7 +347,16 @@ export async function* generateAssistantReply(
   // unlike the knowledge base below which is cached at module scope.
   const settings = await getBusinessSettings();
   const contactBlock = `Current contact details (use these, never invent different ones): support email ${settings.supportEmail}, phone ${settings.supportPhone}, hours ${settings.businessHours}.`;
-  const fullSystemPrompt = `${SYSTEM_PROMPT}\n\n${contactBlock}\n\n---\nKnowledge base (reference material — see individual file headers for sourcing; never contradict the rules above):\n\n${loadKnowledgeBase()}`;
+  const paymentMethods = [
+    process.env.STRIPE_SECRET_KEY && process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ? 'card payments through Stripe' : null,
+    process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_CLIENT_SECRET && process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID
+      ? 'PayPal'
+      : null,
+  ].filter((method): method is string => Boolean(method));
+  const paymentBlock = paymentMethods.length
+    ? `Current checkout capabilities: enabled payment methods are ${paymentMethods.join(' and ')}. Do not claim that financing/BNPL or any unlisted method is available.`
+    : 'Current checkout capabilities: no online payment method is currently enabled. Explain that checkout payment is temporarily unavailable and offer to connect the customer with staff; do not claim PayPal, cards, Link, or financing is available.';
+  const fullSystemPrompt = `${SYSTEM_PROMPT}\n\n${contactBlock}\n${paymentBlock}\n\n---\nKnowledge base (reference material — see individual file headers for sourcing; never contradict the rules above):\n\n${loadKnowledgeBase()}`;
 
   try {
     let exhaustedIterations = true;
@@ -409,9 +427,16 @@ export async function* generateAssistantReply(
 
     yield { type: 'context', context };
     yield { type: 'done' };
-  } catch {
+  } catch (error) {
     if (!signal.aborted) {
-      yield { type: 'error', message: 'Something went wrong generating a response.' };
+      console.error('[chat] Assistant generation failed:', error);
+      yield { type: 'escalate', reason: 'assistant-runtime-error' };
+      yield* sayEvents(
+        "I'm having trouble completing that response right now. I've flagged this for a specialist so your question isn't lost.",
+        signal
+      );
+      yield { type: 'context', context };
+      yield { type: 'done' };
     }
   }
 }

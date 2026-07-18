@@ -508,8 +508,8 @@ gsap.fromTo(el, from, {
 continuous progress) to avoid a re-render per scroll tick.
 
 **Color tokens**: use the existing tokens in `src/design/tokens.ts` /
-`tailwind.config.ts` (Aqua `#2FE7F2`, Matte Black `#0D1117`, Midnight Navy
-`#08131F`, etc.) for all glow/glass/accent effects in this system. Do not
+`tailwind.config.ts` (TechNoir Aqua `#38E8E8`, Midnight Black `#0A0A0A`, Graphite
+`#1A1A1A`, etc.) for all glow/glass/accent effects in this system. Do not
 introduce a second, parallel color palette for animation work.
 
 **Non-negotiable**: every GSAP hook/component here checks

@@ -23,6 +23,8 @@ interface Props {
   requireAccount: boolean;
   ordersPaused: boolean;
   inquiryOnlyMode: boolean;
+  stripeEnabled: boolean;
+  paypalEnabled: boolean;
   supportEmail: string;
   supportPhone?: string;
   businessHours?: string;
@@ -43,6 +45,8 @@ export default function CheckoutClient({
   requireAccount,
   ordersPaused,
   inquiryOnlyMode,
+  stripeEnabled,
+  paypalEnabled,
   supportEmail,
   supportPhone,
   businessHours,
@@ -122,7 +126,7 @@ export default function CheckoutClient({
     setBillingDone(true);
     setActiveStep('payment');
 
-    if (inquiryOnlyMode || clientSecret) return;
+    if (inquiryOnlyMode || !stripeEnabled || clientSecret) return;
 
     setIsLoadingIntent(true);
     setIntentError(null);
@@ -192,7 +196,7 @@ export default function CheckoutClient({
   return (
     <div className="grid grid-cols-1 gap-8 desktop:grid-cols-[1.6fr_1fr] desktop:items-start">
       <div className="flex flex-col gap-4">
-        {isAuthenticated ? (
+        {isAuthenticated && email ? (
           <div className={cn(cardVariants.minimal, 'text-body-sm font-body text-neutral-light-gray')}>
             Signed in as <span className="font-heading font-semibold text-neutral-white">{prefillName || email}</span>
             {prefillName && <span className="text-neutral-silver"> · {email}</span>}
@@ -268,21 +272,25 @@ export default function CheckoutClient({
             </>
           ) : (
             <div className="flex flex-col gap-5">
-              <PaymentSection
-                clientSecret={clientSecret}
-                isLoading={isLoadingIntent}
-                error={intentError}
-                billingDetails={billingDetails}
-                totalLabel={currency(subtotal)}
-              />
-              <PayPalSection
-                items={items.map((item) => ({ productId: item.productId, quantity: item.quantity }))}
-                shippingAddress={address}
-                notes={notes}
-                phone={phone}
-                guestEmail={isAuthenticated ? undefined : guestEmail}
-                guestName={isAuthenticated ? undefined : guestName}
-              />
+              {stripeEnabled && (
+                <PaymentSection
+                  clientSecret={clientSecret}
+                  isLoading={isLoadingIntent}
+                  error={intentError}
+                  billingDetails={billingDetails}
+                  totalLabel={currency(subtotal)}
+                />
+              )}
+              {paypalEnabled && (
+                <PayPalSection
+                  items={items.map((item) => ({ productId: item.productId, quantity: item.quantity }))}
+                  shippingAddress={address}
+                  notes={notes}
+                  phone={phone}
+                  guestEmail={isAuthenticated ? undefined : guestEmail}
+                  guestName={isAuthenticated ? undefined : guestName}
+                />
+              )}
             </div>
           )}
         </AccordionSection>
@@ -291,8 +299,17 @@ export default function CheckoutClient({
       </div>
 
       <div>
-        <OrderSummaryPanel items={items} subtotal={subtotal} supportEmail={supportEmail} supportPhone={supportPhone} businessHours={businessHours} />
-        <CheckoutFooterTrustBar />
+        <OrderSummaryPanel
+          items={items}
+          subtotal={subtotal}
+          supportEmail={supportEmail}
+          supportPhone={supportPhone}
+          businessHours={businessHours}
+          inquiryOnlyMode={inquiryOnlyMode}
+          stripeEnabled={stripeEnabled}
+          paypalEnabled={paypalEnabled}
+        />
+        <CheckoutFooterTrustBar inquiryOnlyMode={inquiryOnlyMode} stripeEnabled={stripeEnabled} paypalEnabled={paypalEnabled} />
       </div>
     </div>
   );

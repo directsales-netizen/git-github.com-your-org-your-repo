@@ -9,27 +9,27 @@ export const designTokens = {
   colors: {
     // Backgrounds
     background: {
-      primary: '#0D1117', // Matte Black
-      secondary: '#08131F', // Midnight Navy
-      tertiary: '#1A1F2E', // Darker Navy
+      primary: '#0A0A0A', // Midnight Black
+      secondary: '#1A1A1A', // Graphite
+      tertiary: '#242424', // Elevated Graphite
     },
     // Primary Accent - Used for CTAs, highlights, interactive elements
     accent: {
-      primary: '#2FE7F2', // Aqua (main brand color)
-      light: '#5EEFF8',
-      dark: '#1FB8C4',
+      primary: '#38E8E8', // TechNoir Aqua
+      light: '#6DEFEF',
+      dark: '#24BDBD',
     },
     // Secondary Accent - Used for secondary actions, borders
     secondary: {
-      primary: '#007BFF', // Electric Blue
-      light: '#3391FF',
-      dark: '#0056CC',
+      primary: '#0F6FB8', // Cyber Blue
+      light: '#3389CA',
+      dark: '#0B568F',
     },
     // Neutral Colors
     neutral: {
       white: '#FFFFFF',
       lightGray: '#E0E0E0',
-      silver: '#C5CBD3',
+      silver: '#C7D0D9',
       gray: '#A3A3A3',
       titanium: '#6C757D',
       darkGray: '#3D3D3D',

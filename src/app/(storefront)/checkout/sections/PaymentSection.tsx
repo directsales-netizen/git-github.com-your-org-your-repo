@@ -58,10 +58,10 @@ export default function PaymentSection({ clientSecret, isLoading, error, billing
   const appearance = {
     theme: 'night' as const,
     variables: {
-      colorBackground: '#0D1117',
+      colorBackground: '#0A0A0A',
       colorText: '#FFFFFF',
-      colorTextSecondary: '#C5CBD3',
-      colorPrimary: '#2FE7F2',
+      colorTextSecondary: '#C7D0D9',
+      colorPrimary: '#38E8E8',
       colorDanger: '#EF4444',
       fontFamily: '"Inter", sans-serif',
       borderRadius: '8px',

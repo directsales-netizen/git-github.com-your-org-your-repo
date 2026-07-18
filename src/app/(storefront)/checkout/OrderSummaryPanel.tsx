@@ -10,11 +10,23 @@ interface Props {
   supportEmail: string;
   supportPhone?: string;
   businessHours?: string;
+  inquiryOnlyMode: boolean;
+  stripeEnabled: boolean;
+  paypalEnabled: boolean;
 }
 
 const currency = (value: number) => value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 
-export default function OrderSummaryPanel({ items, subtotal, supportEmail, supportPhone, businessHours }: Props) {
+export default function OrderSummaryPanel({
+  items,
+  subtotal,
+  supportEmail,
+  supportPhone,
+  businessHours,
+  inquiryOnlyMode,
+  stripeEnabled,
+  paypalEnabled,
+}: Props) {
   return (
     <div className={cn(cardVariants.base, 'flex flex-col gap-5 tablet:sticky tablet:top-24')}>
       <h2 className="text-h6 font-heading font-semibold text-neutral-white">Order Summary</h2>
@@ -63,7 +75,7 @@ export default function OrderSummaryPanel({ items, subtotal, supportEmail, suppo
         </div>
         <div className="flex justify-between text-neutral-light-gray">
           <dt>Tax</dt>
-          <dd>Calculated at payment</dd>
+          <dd>{inquiryOnlyMode ? 'Confirmed after review' : 'Calculated at payment'}</dd>
         </div>
         <div className="flex justify-between border-t border-neutral-titanium/10 pt-2 text-body-md font-heading font-semibold text-neutral-white">
           <dt>Total</dt>
@@ -71,7 +83,14 @@ export default function OrderSummaryPanel({ items, subtotal, supportEmail, suppo
         </div>
       </dl>
 
-      <TrustBadges supportEmail={supportEmail} supportPhone={supportPhone} businessHours={businessHours} />
+      <TrustBadges
+        supportEmail={supportEmail}
+        supportPhone={supportPhone}
+        businessHours={businessHours}
+        inquiryOnlyMode={inquiryOnlyMode}
+        stripeEnabled={stripeEnabled}
+        paypalEnabled={paypalEnabled}
+      />
     </div>
   );
 }

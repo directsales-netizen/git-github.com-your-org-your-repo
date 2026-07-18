@@ -25,12 +25,12 @@ export default function TechNoirCubeVisual() {
       <svg aria-hidden="true" viewBox="0 0 360 180" className="absolute inset-x-0 bottom-0 h-[52%] w-full opacity-70">
         <defs>
           <linearGradient id="circuit-fade" x1="0" y1="0" x2="1" y2="0">
-            <stop stopColor="#2FE7F2" stopOpacity="0" />
-            <stop offset="0.5" stopColor="#2FE7F2" stopOpacity="0.9" />
-            <stop offset="1" stopColor="#2FE7F2" stopOpacity="0" />
+            <stop stopColor="#38E8E8" stopOpacity="0" />
+            <stop offset="0.5" stopColor="#38E8E8" stopOpacity="0.9" />
+            <stop offset="1" stopColor="#38E8E8" stopOpacity="0" />
           </linearGradient>
           <pattern id="circuit-grid" width="24" height="24" patternUnits="userSpaceOnUse">
-            <path d="M24 0H0V24" fill="none" stroke="#2FE7F2" strokeOpacity="0.12" strokeWidth="0.75" />
+            <path d="M24 0H0V24" fill="none" stroke="#38E8E8" strokeOpacity="0.12" strokeWidth="0.75" />
           </pattern>
         </defs>
         <path d="M0 40 L180 0 L360 40 L180 180 Z" fill="url(#circuit-grid)" />

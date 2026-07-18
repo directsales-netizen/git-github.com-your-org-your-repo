@@ -11,7 +11,7 @@ export default function HeroShaderBackground({ reducedMotion }: { reducedMotion:
     <MeshGradient
       aria-hidden="true"
       className="absolute inset-0 h-full w-full"
-      colors={['#0D1117', '#08131F', '#2FE7F2', '#007BFF']}
+      colors={['#0A0A0A', '#1A1A1A', '#38E8E8', '#0F6FB8']}
       distortion={0.6}
       swirl={0.3}
       speed={reducedMotion ? 0 : 0.3}

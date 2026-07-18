@@ -26,12 +26,12 @@ export default function Sparkline({ data, width = 96, height = 32 }: SparklinePr
       <polyline
         points={points.join(' ')}
         fill="none"
-        stroke="#2FE7F2"
+        stroke="#38E8E8"
         strokeWidth={2}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <circle cx={width} cy={parseFloat(points[points.length - 1].split(',')[1])} r={2.5} fill="#2FE7F2" />
+      <circle cx={width} cy={parseFloat(points[points.length - 1].split(',')[1])} r={2.5} fill="#38E8E8" />
     </svg>
   );
 }
