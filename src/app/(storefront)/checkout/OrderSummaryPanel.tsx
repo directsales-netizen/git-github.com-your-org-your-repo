@@ -3,6 +3,7 @@ import type { CartItem } from '@/types/cart';
 import { PRODUCT_GRADE_DESCRIPTIONS, PRODUCT_GRADE_LABELS } from '@/types/product';
 import { cardVariants, cn } from '@/design';
 import TrustBadges from './TrustBadges';
+import ProductImage from '@/components/shop/ProductImage';
 
 interface Props {
   items: CartItem[];
@@ -34,11 +35,12 @@ export default function OrderSummaryPanel({
       <ul className="flex flex-col gap-4">
         {items.map((item) => (
           <li key={item.productId} className="flex gap-3">
-            <div
-              aria-hidden="true"
-              className={cn('h-16 w-16 shrink-0 rounded-md bg-gradient-to-br', item.imageColor)}
-              role="img"
-              title={item.imageAlt}
+            <ProductImage
+              imageUrl={item.imageUrl}
+              imageAlt={item.imageAlt}
+              imageColor={item.imageColor}
+              sizes="64px"
+              className="h-16 w-16 shrink-0"
             />
             <div className="flex flex-1 flex-col gap-1">
               <div className="flex items-start justify-between gap-2">

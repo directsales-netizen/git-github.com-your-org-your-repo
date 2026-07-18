@@ -28,6 +28,8 @@ export function CartProvider({ children, ordersPaused = false }: { children: Rea
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
+      // Hydration must happen after mount so the server and first client render both start empty.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (raw) setItems(JSON.parse(raw));
     } catch {
       // Corrupt/inaccessible storage — start with an empty cart.
@@ -56,6 +58,7 @@ export function CartProvider({ children, ordersPaused = false }: { children: Rea
           price: product.price,
           imageAlt: product.imageAlt,
           imageColor: product.imageColor,
+          imageUrl: product.imageUrl,
           quantity,
           availability: product.availability,
           grade: product.grade,

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import type { PublicProduct } from '@/types/product';
 import { PRODUCT_GRADE_LABELS } from '@/types/product';
 import { cardVariants, cn } from '@/design';
+import ProductImage from '@/components/shop/ProductImage';
 
 export default function ProductCardCompact({ product }: { product: PublicProduct }) {
   return (
@@ -9,10 +10,12 @@ export default function ProductCardCompact({ product }: { product: PublicProduct
       href={`/shop?search=${encodeURIComponent(product.title)}`}
       className={cn(cardVariants.minimal, 'flex gap-3 bg-bg-primary transition-colors duration-300 hover:border-accent-primary')}
     >
-      <div
-        role="img"
-        aria-label={product.imageAlt}
-        className={cn('h-16 w-16 shrink-0 rounded-md bg-gradient-to-br', product.imageColor)}
+      <ProductImage
+        imageUrl={product.imageUrl}
+        imageAlt={product.imageAlt}
+        imageColor={product.imageColor}
+        sizes="64px"
+        className="h-16 w-16 shrink-0"
       />
       <div className="min-w-0 flex-1">
         <p className="truncate text-body-sm font-body font-semibold text-neutral-white">{product.title}</p>

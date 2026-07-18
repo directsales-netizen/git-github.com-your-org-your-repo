@@ -5,6 +5,7 @@ import { Minus, Plus, Trash2 } from 'lucide-react';
 import { useCart } from '@/lib/cart/CartContext';
 import { accessibility, buttonVariants, cardVariants, cn, spacing } from '@/design';
 import EmptyState from '@/components/admin/EmptyState';
+import ProductImage from '@/components/shop/ProductImage';
 
 export default function CartClient() {
   const { items, removeItem, setQuantity, subtotal } = useCart();
@@ -28,7 +29,13 @@ export default function CartClient() {
       <div className="flex flex-col gap-3">
         {items.map((item) => (
           <div key={item.productId} className={cn(cardVariants.base, 'flex items-center gap-4')}>
-            <div className={cn('h-16 w-16 shrink-0 rounded-md bg-gradient-to-br', item.imageColor)} role="img" aria-label={item.imageAlt} />
+            <ProductImage
+              imageUrl={item.imageUrl}
+              imageAlt={item.imageAlt}
+              imageColor={item.imageColor}
+              sizes="64px"
+              className="h-16 w-16 shrink-0"
+            />
             <div className="min-w-0 flex-1">
               <p className="truncate font-heading font-semibold text-neutral-white">{item.title}</p>
               <p className="text-body-sm font-body text-neutral-silver">${item.price} each</p>

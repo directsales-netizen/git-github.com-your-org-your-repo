@@ -17,7 +17,7 @@ const VALUES = [
   {
     icon: Wallet,
     heading: 'Smarter Value',
-    description: 'Get premium technology at 20-60% below retail, with transparent pricing tied directly to condition grade.',
+    description: 'Get dependable technology at a transparent price, with value tied directly to condition and testing.',
   },
   {
     icon: Leaf,
@@ -28,21 +28,24 @@ const VALUES = [
 
 export default function WhyChoose() {
   return (
-    <section className={cn(spacing.containerPadding, spacing.sectionMargin, 'mx-auto max-w-[1440px]')}>
+    <section className={cn(spacing.containerPadding, 'mx-auto max-w-[1440px] py-24 tablet:py-28 desktop:py-32')}>
       <Fade variant="up">
-        <h2 className="text-center text-h2 font-heading font-bold text-neutral-white">Why Choose Premium TechNoir</h2>
-        <p className="mx-auto mt-4 max-w-2xl text-center text-body-lg font-body text-neutral-light-gray">
+        <p className="text-center text-label-sm font-body font-semibold uppercase tracking-[0.24em] text-accent-primary">Why choose us</p>
+        <h2 className="mt-3 text-center text-[clamp(2.4rem,4.8vw,4.2rem)] font-heading font-bold leading-none text-neutral-white">Built for trust.</h2>
+        <p className="mx-auto mt-5 max-w-2xl text-center text-body-lg font-body leading-8 text-neutral-silver">
           Trust, transparency, and quality guide every device we sell.
         </p>
       </Fade>
 
-      <div className={cn(grid.fourCol, 'mt-12')}>
+      <div className={cn(grid.fourCol, 'mt-14')}>
         {VALUES.map(({ icon: Icon, heading, description }, index) => (
           <Fade key={heading} variant="up" transition={{ delay: index * 0.08 }}>
-            <GlassCard className="h-full p-6">
-              <Icon size={28} className="text-accent-primary" aria-hidden="true" />
+            <GlassCard className="h-full rounded-lg border-accent-primary/10 bg-bg-secondary/45 p-6 transition-transform duration-300 hover:-translate-y-1">
+              <span className="flex h-12 w-12 items-center justify-center rounded-md border border-accent-primary/20 bg-accent-primary/10">
+                <Icon size={26} className="text-accent-primary" aria-hidden="true" />
+              </span>
               <h3 className="mt-4 text-h5 font-heading font-semibold text-neutral-white">{heading}</h3>
-              <p className="mt-2 text-body-sm font-body text-neutral-silver">{description}</p>
+              <p className="mt-3 text-body-sm font-body leading-6 text-neutral-silver">{description}</p>
             </GlassCard>
           </Fade>
         ))}

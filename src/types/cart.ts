@@ -15,6 +15,7 @@ export interface CartItem {
   price: number;
   imageAlt: string;
   imageColor: string;
+  imageUrl?: string;
   quantity: number;
   availability: StockAvailability;
   grade: ProductGrade;

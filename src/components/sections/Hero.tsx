@@ -67,12 +67,12 @@ export default function Hero({
   }
 
   return (
-    <section ref={sectionRef} className="relative overflow-hidden bg-gradient-to-b from-bg-secondary to-bg-primary">
+    <section ref={sectionRef} className="relative min-h-[calc(100svh-5rem)] overflow-hidden">
       <div className="absolute inset-0 opacity-40">
         <HeroShaderBackground reducedMotion={Boolean(prefersReducedMotion)} />
       </div>
       {/* Scrim over the shader so headline/subheadline text keeps WCAG AA contrast regardless of what the gradient is doing underneath. */}
-      <div className="absolute inset-0 bg-gradient-to-b from-bg-primary/70 via-bg-primary/40 to-bg-primary" />
+      <div className="absolute inset-0 bg-gradient-to-b from-bg-primary/30 via-bg-primary/20 to-bg-primary/90" />
 
       {/* Mouse-responsive lighting — a soft aqua glow that follows the cursor within the hero. */}
       {!prefersReducedMotion && (
@@ -111,11 +111,11 @@ export default function Hero({
           />
         </div>
       )}
-      <div className={cn(spacing.containerPadding, 'relative mx-auto grid max-w-[1440px] grid-cols-1 items-center gap-12 py-20 tablet:py-24 desktop:grid-cols-2 desktop:py-32')}>
+      <div className={cn(spacing.containerPadding, 'relative mx-auto grid min-h-[calc(100svh-5rem)] max-w-[1440px] grid-cols-1 items-center gap-12 py-20 tablet:py-24 desktop:grid-cols-[1.1fr_0.9fr] desktop:py-24')}>
         <HeroReveal>
-          <HeroRevealItem className={cn(flex.center, 'w-fit gap-2 rounded-full border border-accent-primary/30 bg-accent-primary/10 px-4 py-1.5')}>
+          <HeroRevealItem className={cn(flex.center, 'w-fit gap-2 rounded-full border border-accent-primary/20 bg-bg-secondary/55 px-4 py-1.5 backdrop-blur-md')}>
             <ShieldCheck size={16} className="text-accent-primary" aria-hidden="true" />
-            <span className="text-label-sm font-body font-medium text-accent-primary">Professionally tested &amp; graded</span>
+            <span className="text-label-sm font-body font-medium uppercase tracking-[0.16em] text-accent-primary">Professionally tested &amp; graded</span>
           </HeroRevealItem>
 
           <HeroRevealItem>
@@ -124,7 +124,7 @@ export default function Hero({
               value={headline}
               onSave={(v) => saveField('heroHeadline', v)}
               multiline
-              className="mt-6 text-display-2 font-heading font-bold text-neutral-white tablet:text-display-1"
+              className="mt-7 max-w-5xl text-[clamp(3.2rem,8vw,7rem)] font-heading font-bold leading-none text-neutral-white"
             />
           </HeroRevealItem>
 
@@ -134,30 +134,45 @@ export default function Hero({
               value={subheadline}
               onSave={(v) => saveField('heroSubheadline', v)}
               multiline
-              className="mt-6 max-w-xl text-body-lg font-body text-neutral-light-gray"
+              className="mt-7 max-w-xl text-body-lg font-body leading-8 text-neutral-silver"
             />
           </HeroRevealItem>
 
-          <HeroRevealItem className="mt-8 flex flex-col gap-4 tablet:flex-row">
+          <HeroRevealItem className="mt-10 flex flex-col gap-4 tablet:flex-row">
             {editModeOn ? (
-              <span className={cn(buttonVariants.primary, spacing.buttonPadding, 'inline-flex items-center justify-center text-body-md')}>
+              <span className={cn(buttonVariants.primary, 'inline-flex items-center justify-center rounded-full px-8 py-4 text-body-md')}>
                 <InlineEditableText value={ctaLabel} onSave={(v) => saveField('heroCtaLabel', v)} className="text-body-md" />
               </span>
             ) : (
               <Link
                 ref={magneticCtaRef}
                 href="/shop"
-                className={cn(buttonVariants.primary, spacing.buttonPadding, 'inline-flex items-center justify-center text-body-md will-change-transform')}
+                className={cn(buttonVariants.primary, 'inline-flex items-center justify-center rounded-full px-8 py-4 text-body-md will-change-transform')}
               >
                 {ctaLabel}
               </Link>
             )}
             <Link
-              href="/refurbished"
-              className={cn(buttonVariants.ghost, spacing.buttonPadding, 'inline-flex items-center justify-center text-body-md')}
+              href="/sustainability"
+              className={cn(buttonVariants.ghost, 'inline-flex items-center justify-center rounded-full px-8 py-4 text-body-md')}
             >
               How Refurbishment Works
             </Link>
+          </HeroRevealItem>
+
+          <HeroRevealItem className="mt-14 grid max-w-xl grid-cols-3 gap-6">
+            <div>
+              <p className="text-h4 font-heading font-bold text-neutral-white"><span className="text-accent-primary">30</span>d</p>
+              <p className="mt-1 text-label-xs font-body uppercase tracking-[0.14em] text-neutral-titanium">Warranty</p>
+            </div>
+            <div>
+              <p className="text-h4 font-heading font-bold text-neutral-white"><span className="text-accent-primary">100</span>%</p>
+              <p className="mt-1 text-label-xs font-body uppercase tracking-[0.14em] text-neutral-titanium">Tested</p>
+            </div>
+            <div>
+              <p className="text-h4 font-heading font-bold text-neutral-white"><span className="text-accent-primary">A-D</span></p>
+              <p className="mt-1 text-label-xs font-body uppercase tracking-[0.14em] text-neutral-titanium">Grading</p>
+            </div>
           </HeroRevealItem>
         </HeroReveal>
 
@@ -169,7 +184,7 @@ export default function Hero({
         >
           <HoverTilt
             maxTilt={6}
-            className="mx-auto w-full max-w-[32rem] desktop:mr-0"
+            className="mx-auto w-full max-w-[34rem] desktop:mr-0"
           >
             <TechNoirCubeVisual />
           </HoverTilt>

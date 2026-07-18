@@ -12,6 +12,7 @@ import { getBusinessSettings } from '@/lib/admin/settings';
 import SmoothScrollProvider from '@/components/animations/SmoothScrollProvider';
 import ScrollProgress from '@/components/animations/ScrollProgress';
 import PageTransition from '@/components/animations/PageTransition';
+import AnimatedStoryboardBackdrop from '@/components/sections/AnimatedStoryboardBackdrop';
 
 const EDITOR_ROLES = ['editor', 'admin', 'SuperAdmin'];
 
@@ -44,15 +45,24 @@ export default async function StorefrontLayout({ children }: { children: React.R
     <EditModeProvider canEdit={canEdit}>
       <CartProvider ordersPaused={settings.ordersPaused}>
         <WishlistProvider isAuthenticated={Boolean(session)}>
-          <SmoothScrollProvider />
-          <ScrollProgress />
-          {settings.ordersPaused && <OrdersPausedBanner supportEmail={settings.supportEmail} />}
-          <Navigation isAuthenticated={Boolean(session)} />
-          <main className="flex-1">
-            <PageTransition>{children}</PageTransition>
-          </main>
-          <Footer />
-          <ChatWidget />
+          <div className="relative isolate min-h-screen overflow-x-hidden bg-bg-primary">
+            <AnimatedStoryboardBackdrop placement="storefront" />
+            <div
+              aria-hidden="true"
+              className="pointer-events-none fixed inset-0 z-0 opacity-[0.1] [background-image:radial-gradient(circle,rgba(56,232,232,0.55)_1px,transparent_1px)] [background-size:28px_28px] [mask-image:radial-gradient(ellipse_at_center,black_20%,transparent_78%)]"
+            />
+            <div className="relative z-10 flex min-h-screen flex-col">
+              <SmoothScrollProvider />
+              <ScrollProgress />
+              {settings.ordersPaused && <OrdersPausedBanner supportEmail={settings.supportEmail} />}
+              <Navigation isAuthenticated={Boolean(session)} />
+              <main className="flex-1">
+                <PageTransition>{children}</PageTransition>
+              </main>
+              <Footer />
+              <ChatWidget />
+            </div>
+          </div>
         </WishlistProvider>
       </CartProvider>
     </EditModeProvider>

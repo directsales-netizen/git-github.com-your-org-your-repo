@@ -11,6 +11,7 @@ import Drawer from '@/components/admin/Drawer';
 import ConfirmDialog from '@/components/admin/ConfirmDialog';
 import StatusBadge from '@/components/admin/StatusBadge';
 import { SelectField, TextField } from '@/components/admin/FormFields';
+import ProductImage from '@/components/shop/ProductImage';
 
 interface FormState {
   title: string;
@@ -125,7 +126,23 @@ export default function InventoryClient({ initialProducts }: { initialProducts: 
   }
 
   const columns: Column<Product>[] = [
-    { key: 'title', header: 'Product', sortValue: (p) => p.title, render: (p) => <span className="font-medium text-neutral-white">{p.title}</span> },
+    {
+      key: 'title',
+      header: 'Product',
+      sortValue: (p) => p.title,
+      render: (p) => (
+        <div className="flex min-w-52 items-center gap-3">
+          <ProductImage
+            imageUrl={p.imageUrl}
+            imageAlt={p.imageAlt}
+            imageColor={p.imageColor}
+            sizes="48px"
+            className="h-10 w-12 shrink-0"
+          />
+          <span className="font-medium text-neutral-white">{p.title}</span>
+        </div>
+      ),
+    },
     { key: 'category', header: 'Category', sortValue: (p) => p.category },
     { key: 'grade', header: 'Grade', sortValue: (p) => p.grade, render: (p) => PRODUCT_GRADE_LABELS[p.grade] },
     { key: 'price', header: 'Price', sortValue: (p) => p.price, render: (p) => `$${p.price.toLocaleString()}` },

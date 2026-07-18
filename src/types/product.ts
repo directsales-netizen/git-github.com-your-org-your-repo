@@ -43,6 +43,7 @@ export interface Product {
   originalPrice?: number;
   imageAlt: string;
   imageColor: string;
+  imageUrl?: string;
   dateAdded: string;
   popularity: number;
   stock: number;

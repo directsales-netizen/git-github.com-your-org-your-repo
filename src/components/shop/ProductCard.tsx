@@ -7,6 +7,7 @@ import { buttonVariants, cn, spacing } from '@/design';
 import { useCart } from '@/lib/cart/CartContext';
 import GlassCard from '@/components/animations/GlassCard';
 import WishlistButton from './WishlistButton';
+import ProductImage from './ProductImage';
 
 const AVAILABILITY_LABEL: Record<PublicProduct['availability'], string> = {
   'in-stock': 'In stock',
@@ -25,12 +26,15 @@ export default function ProductCard({ product }: { product: PublicProduct }) {
   }
 
   return (
-    <GlassCard className="flex flex-col p-6">
-      <div
-        role="img"
-        aria-label={product.imageAlt}
-        className={cn('relative aspect-[4/3] w-full rounded-md bg-gradient-to-br', product.imageColor)}
-      >
+    <GlassCard className="group flex flex-col p-6">
+      <div className="relative">
+        <ProductImage
+          imageUrl={product.imageUrl}
+          imageAlt={product.imageAlt}
+          imageColor={product.imageColor}
+          sizes="(min-width: 1024px) 22vw, (min-width: 768px) 44vw, 88vw"
+          className="aspect-[4/3] w-full"
+        />
         <div className="absolute right-2 top-2">
           <WishlistButton productId={product.id} />
         </div>

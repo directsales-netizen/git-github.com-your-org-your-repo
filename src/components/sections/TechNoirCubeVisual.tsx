@@ -1,7 +1,8 @@
 'use client';
 
+import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { Cpu, ShieldCheck, Sparkles } from 'lucide-react';
+import { ShieldCheck, Sparkles } from 'lucide-react';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 
 const circuitPaths = [
@@ -17,8 +18,6 @@ export default function TechNoirCubeVisual() {
   return (
     <div
       className="relative aspect-square w-full max-w-[32rem] overflow-hidden rounded-xl border border-accent-primary/20 bg-bg-primary/80 shadow-[0_30px_100px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl"
-      role="img"
-      aria-label="A modular TechNoir cube activating above a digital circuit network"
     >
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_44%,rgba(47,231,242,0.16),transparent_36%),linear-gradient(145deg,rgba(8,19,31,0.2),rgba(13,17,23,0.96))]" />
 
@@ -64,22 +63,24 @@ export default function TechNoirCubeVisual() {
       />
 
       <motion.div
-        className="absolute left-1/2 top-[46%] h-36 w-36 -translate-x-1/2 -translate-y-1/2 [perspective:900px]"
-        initial={reducedMotion ? false : { opacity: 0, y: 20, scale: 0.82 }}
-        animate={{ opacity: 1, y: reducedMotion ? 0 : [0, -8, 0], scale: 1 }}
+        className="absolute left-1/2 top-[46%] w-[86%] -translate-x-1/2 -translate-y-1/2"
+        initial={reducedMotion ? false : { opacity: 0, y: 20, scale: 0.94 }}
+        animate={{ opacity: 1, y: reducedMotion ? 0 : [0, -6, 0], scale: 1 }}
         transition={
           reducedMotion
             ? { duration: 0 }
             : { opacity: { duration: 0.7 }, scale: { duration: 0.7 }, y: { duration: 4, repeat: Infinity, ease: 'easeInOut' } }
         }
       >
-        <div className="absolute inset-0 rotate-45 rounded-[1.4rem] border border-neutral-white/20 bg-gradient-to-br from-neutral-silver/35 via-bg-tertiary to-bg-primary shadow-[0_0_55px_rgba(47,231,242,0.28)]">
-          <div className="absolute inset-[12%] rounded-xl border border-accent-primary/45 bg-bg-primary/75 shadow-[inset_0_0_30px_rgba(47,231,242,0.18)]" />
-          <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-gradient-to-b from-neutral-white/35 via-accent-primary to-transparent" />
-          <div className="absolute left-0 top-1/2 h-px w-full -translate-y-1/2 bg-gradient-to-r from-neutral-white/25 via-accent-primary to-transparent" />
-          <div className="absolute left-1/2 top-1/2 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 -rotate-45 items-center justify-center rounded-full border border-accent-primary/60 bg-bg-secondary shadow-[0_0_24px_rgba(47,231,242,0.7)]">
-            <Cpu size={24} className="text-accent-primary" />
-          </div>
+        <div className="relative aspect-[3/2] overflow-hidden rounded-md border border-neutral-white/20 bg-neutral-white shadow-[0_18px_55px_rgba(0,0,0,0.42),0_0_42px_rgba(56,232,232,0.18)]">
+          <Image
+            src="/products/07_MacBook_Pro_14_M2_-_Space_Gray.jpg"
+            alt="MacBook Pro 14-inch M2 in space gray"
+            fill
+            priority
+            sizes="(min-width: 1024px) 430px, 82vw"
+            className="object-contain"
+          />
         </div>
       </motion.div>
 

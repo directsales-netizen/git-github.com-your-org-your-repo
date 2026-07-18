@@ -1,6 +1,7 @@
 import type { Product, ProductCategory, ProductFilters, ProductGrade, PublicProduct } from '@/types/product';
 import type { Testimonial } from '@/types/testimonial';
 import { globalBox, globalSingleton } from '@/lib/globalStore';
+import { PRODUCT_IMAGE_URLS } from '@/lib/productImages';
 
 const PAGE_SIZE = 20;
 
@@ -83,6 +84,7 @@ function withStock(record: ProductRecord): Product {
   const merged = overrides ? { ...record, ...overrides } : record;
   return {
     ...merged,
+    imageUrl: merged.imageUrl ?? PRODUCT_IMAGE_URLS[record.id],
     stock: stockOverrides.get(record.id) ?? deriveDefaultStock(record),
     lowStockThreshold: lowStockThresholdOverrides.get(record.id) ?? DEFAULT_LOW_STOCK_THRESHOLD,
   };
