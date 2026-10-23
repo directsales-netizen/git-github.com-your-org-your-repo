@@ -2,6 +2,7 @@ import type { Product, ProductCategory, ProductFilters, ProductGrade, PublicProd
 import type { Testimonial } from '@/types/testimonial';
 import { globalBox, globalSingleton } from '@/lib/globalStore';
 import { PRODUCT_IMAGE_URLS } from '@/lib/productImages';
+import { REAL_INVENTORY, REAL_INVENTORY_STOCK } from '@/lib/realInventory';
 
 const PAGE_SIZE = 20;
 
@@ -54,6 +55,9 @@ const ALL_PRODUCTS: ProductRecord[] = [
   { id: '34', slug: 'airpods-pro-2nd-gen', title: 'AirPods Pro (2nd Gen)', category: 'Accessories', grade: 'B', price: 187, imageAlt: 'AirPods Pro 2nd generation, white', imageColor: 'from-neutral-silver/30 to-bg-tertiary', dateAdded: '2026-06-22', popularity: 71 },
   { id: '35', slug: 'anker-usb-c-hub', title: 'Anker USB-C Hub', category: 'Accessories', grade: 'C', price: 32, imageAlt: 'Anker USB-C Hub, gray', imageColor: 'from-secondary-primary/20 to-bg-tertiary', dateAdded: '2026-06-26', popularity: 33 },
   { id: '36', slug: 'logitech-mx-master-3', title: 'Logitech MX Master 3', category: 'Accessories', grade: 'D', price: 42, imageAlt: 'Logitech MX Master 3, graphite', imageColor: 'from-accent-dark/30 to-bg-tertiary', dateAdded: '2026-06-30', popularity: 18 },
+
+  // Real on-hand inventory (see src/lib/realInventory.ts)
+  ...REAL_INVENTORY,
 ];
 
 const DEFAULT_LOW_STOCK_THRESHOLD = 5;
@@ -64,7 +68,7 @@ const DEFAULT_LOW_STOCK_THRESHOLD = 5;
 // restart, same accepted limitation as the rest of this app's mock data.
 // Stored via globalSingleton/globalBox (see src/lib/globalStore.ts) so
 // admin API route writes are visible to page reads within the same process.
-const stockOverrides = globalSingleton('stockOverrides', () => new Map<string, number>());
+const stockOverrides = globalSingleton('stockOverrides', () => new Map<string, number>(Object.entries(REAL_INVENTORY_STOCK)));
 const lowStockThresholdOverrides = globalSingleton('lowStockThresholdOverrides', () => new Map<string, number>());
 const productOverrides = globalSingleton('productOverrides', () => new Map<string, Partial<ProductRecord>>());
 const createdProducts = globalSingleton('createdProducts', (): ProductRecord[] => []);
