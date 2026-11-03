@@ -23,6 +23,8 @@ import TechNoirCubeVisual from './TechNoirCubeVisual';
 // shouldn't block the server-rendered headline/CTA, which are what matters
 // for LCP — the shader is purely decorative and paints in behind them).
 const HeroShaderBackground = dynamic(() => import('./HeroShaderBackground'), { ssr: false });
+// Additive light-particle layer (cursor-following, depth parallax). Client-only canvas.
+const HeroParticles = dynamic(() => import('./HeroParticles'), { ssr: false });
 
 type EditableHeroField = Extract<keyof SiteContentSettings, 'heroHeadline' | 'heroSubheadline' | 'heroCtaLabel' | 'promoBannerText'>;
 
@@ -73,6 +75,9 @@ export default function Hero({
       </div>
       {/* Scrim over the shader so headline/subheadline text keeps WCAG AA contrast regardless of what the gradient is doing underneath. */}
       <div className="absolute inset-0 bg-gradient-to-b from-bg-primary/30 via-bg-primary/20 to-bg-primary/90" />
+
+      {/* Light particles — drift, follow the cursor, and parallax by depth. Skipped entirely under reduced motion. */}
+      {!prefersReducedMotion && <HeroParticles />}
 
       {/* Mouse-responsive lighting — a soft aqua glow that follows the cursor within the hero. */}
       {!prefersReducedMotion && (
