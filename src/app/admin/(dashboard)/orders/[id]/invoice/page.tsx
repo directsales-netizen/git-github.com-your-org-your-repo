@@ -41,7 +41,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
           )}
         </div>
         <div className="text-right text-sm">
-          <p><span className="font-bold">Payment:</span> {order.paymentProvider === 'stripe' ? 'Stripe' : order.paymentProvider === 'paypal' ? 'PayPal' : 'On record'}</p>
+          <p><span className="font-bold">Payment:</span> {order.paymentProvider === 'authorizenet' ? 'Authorize.net' : 'On record'}</p>
         </div>
       </div>
 

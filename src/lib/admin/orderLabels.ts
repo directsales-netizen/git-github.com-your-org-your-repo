@@ -4,7 +4,7 @@ import type { DisputeRecord } from '@/types/fraud';
 import type { BadgeTone } from '@/components/admin/StatusBadge';
 
 /** No server-only deps — safe to import from client components, same convention as src/lib/admin/requestLabels.ts. */
-export const PROVIDER_LABEL: Record<PaymentProvider, string> = { stripe: 'Stripe', paypal: 'PayPal' };
+export const PROVIDER_LABEL: Record<PaymentProvider, string> = { authorizenet: 'Authorize.net' };
 
 /** Derived, never stored — canonical implementation shared by the CSV export route and every admin order UI; see the PaymentStatus doc comment in src/types/admin.ts. */
 export function getPaymentStatus(order: AdminOrderSummary, disputes: DisputeRecord[]): PaymentStatus {

@@ -48,7 +48,7 @@ export default function FraudClient({ initialQueue, initialBlocklists, initialDi
   const columns: Column<AdminOrderSummary>[] = [
     { key: 'id', header: 'Order', sortValue: (o) => o.id, render: (o) => <span className="font-medium text-neutral-white">{o.id}</span> },
     { key: 'email', header: 'Customer', render: (o) => o.email },
-    { key: 'provider', header: 'Payment', render: (o) => (o.paymentProvider === 'stripe' ? 'Stripe' : o.paymentProvider === 'paypal' ? 'PayPal' : '—') },
+    { key: 'provider', header: 'Payment', render: (o) => (o.paymentProvider === 'authorizenet' ? 'Authorize.net' : '—') },
     { key: 'total', header: 'Amount', sortValue: (o) => orderTotal(o), render: (o) => `$${orderTotal(o).toFixed(2)}` },
     {
       key: 'risk',
@@ -116,7 +116,7 @@ export default function FraudClient({ initialQueue, initialBlocklists, initialDi
         <h2 className="text-h6 font-heading font-semibold text-neutral-white">Chargebacks</h2>
         <DataTable
           columns={[
-            { key: 'provider', header: 'Provider', render: (d: DisputeRecord) => (d.provider === 'stripe' ? 'Stripe' : 'PayPal') },
+            { key: 'provider', header: 'Provider', render: () => 'Authorize.net' },
             { key: 'orderId', header: 'Order', render: (d: DisputeRecord) => d.orderId ?? '—' },
             { key: 'amount', header: 'Amount', render: (d: DisputeRecord) => (d.amount != null ? `$${d.amount.toFixed(2)}` : '—') },
             { key: 'status', header: 'Status', render: (d: DisputeRecord) => d.status },
@@ -182,8 +182,9 @@ function BlocklistsPanel({ initialBlocklists }: { initialBlocklists: FraudBlockl
         <h2 className="text-h6 font-heading font-semibold text-neutral-white">Blocklists</h2>
         <p className="text-body-sm font-body text-neutral-silver">
           An IP here hard-blocks checkout before any payment is attempted. A card-issuing country here contributes to
-          the risk score (this can&apos;t pre-block a Stripe charge — for a true pre-auth block, configure a matching
-          Stripe Radar rule in the Dashboard).
+          the risk score — Authorize.net&apos;s createTransactionRequest response doesn&apos;t expose the card-issuing
+          country, so this can&apos;t yet pre-block a charge on its own; it only feeds the review-queue score until a
+          BIN-lookup step is added.
         </p>
       </div>
 

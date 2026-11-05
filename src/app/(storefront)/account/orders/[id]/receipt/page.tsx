@@ -6,7 +6,7 @@ import PrintButton from '@/components/PrintButton';
 
 const currency = (value: number) => value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 
-const PROVIDER_LABEL: Record<string, string> = { stripe: 'Card via Stripe', paypal: 'PayPal' };
+const PROVIDER_LABEL: Record<string, string> = { authorizenet: 'Card via Authorize.net' };
 
 export default async function CustomerReceiptPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

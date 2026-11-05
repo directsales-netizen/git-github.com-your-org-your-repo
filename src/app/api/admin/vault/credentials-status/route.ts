@@ -25,16 +25,15 @@ function maskLast4(value: string | undefined): string | undefined {
 function getIntegrationStatuses(): IntegrationStatus[] {
   return [
     {
-      id: 'stripe',
-      name: 'Stripe',
-      configured: Boolean(process.env.STRIPE_SECRET_KEY && process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY),
-      maskedValue: maskLast4(process.env.STRIPE_SECRET_KEY),
-    },
-    {
-      id: 'paypal',
-      name: 'PayPal',
-      configured: Boolean(process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_CLIENT_SECRET),
-      maskedValue: maskLast4(process.env.PAYPAL_CLIENT_ID),
+      id: 'authorizenet',
+      name: 'Authorize.net (PNC Merchant Services)',
+      configured: Boolean(
+        process.env.AUTHORIZENET_API_LOGIN_ID &&
+          process.env.AUTHORIZENET_TRANSACTION_KEY &&
+          process.env.NEXT_PUBLIC_AUTHORIZENET_API_LOGIN_ID &&
+          process.env.NEXT_PUBLIC_AUTHORIZENET_CLIENT_KEY
+      ),
+      maskedValue: maskLast4(process.env.AUTHORIZENET_API_LOGIN_ID),
     },
     {
       id: 'resend',

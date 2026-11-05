@@ -10,8 +10,6 @@ export interface CustomerAccount {
   createdAt: string;
   /** Set only for accounts created via social/email-link sign-in rather than the password form — the provider already verified the email, so these are created with emailVerified: true. Undefined means password-based. */
   authProvider?: CustomerAuthProvider;
-  /** Stripe Customer ID, created on first checkout and reused after — lets Stripe offer a saved payment method on return visits instead of asking for card details again. */
-  stripeCustomerId?: string;
 }
 
 export interface SavedAddress {

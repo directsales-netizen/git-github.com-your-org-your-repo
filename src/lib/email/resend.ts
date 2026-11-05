@@ -122,7 +122,7 @@ export async function sendInquiryApprovedEmail(email: string, inquiryId: string,
     subject: `Your Premium TechNoir purchase request ${inquiryId} has been approved`,
     html: `<p>Good news — your purchase request <strong>${inquiryId}</strong> has been reviewed and approved.</p>
 <p><a href="${checkoutUrl}">Complete your payment here</a> to finish your order.</p>
-<p>This link takes you to a secure Stripe payment page — we never see or store your card details.</p>`,
+<p>This link takes you to a secure Authorize.net payment page — we never see or store your card details.</p>`,
   });
 }
 

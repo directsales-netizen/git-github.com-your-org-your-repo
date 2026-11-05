@@ -47,9 +47,9 @@ export default async function AccountPurchaseInquiriesPage() {
             <p className="mt-1 text-caption font-body text-error">{inquiry.rejectionReason}</p>
           )}
 
-          {inquiry.status === 'approved' && inquiry.stripeCheckoutUrl && (
+          {inquiry.status === 'approved' && inquiry.authorizeNetHostedUrl && (
             <a
-              href={inquiry.stripeCheckoutUrl}
+              href={inquiry.authorizeNetHostedUrl}
               className={cn(buttonVariants.primary, spacing.buttonPadding, 'mt-2 self-start text-body-sm')}
             >
               Complete Payment

@@ -13,13 +13,15 @@ export const metadata: Metadata = {
 export default async function CheckoutPage() {
   const [session, settings] = await Promise.all([getCustomerSession(), getBusinessSettings()]);
   const account = session ? await findCustomerAccountByEmail(session.sub) : null;
-  const stripeEnabled = Boolean(process.env.STRIPE_SECRET_KEY && process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
-  const paypalEnabled = Boolean(
-    process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_CLIENT_SECRET && process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID
+  const authorizeNetEnabled = Boolean(
+    process.env.AUTHORIZENET_API_LOGIN_ID &&
+      process.env.AUTHORIZENET_TRANSACTION_KEY &&
+      process.env.NEXT_PUBLIC_AUTHORIZENET_API_LOGIN_ID &&
+      process.env.NEXT_PUBLIC_AUTHORIZENET_CLIENT_KEY
   );
   // A visitor should always have a working way to submit their cart. When no
   // provider is configured, automatically use the review/request workflow.
-  const inquiryOnlyMode = settings.inquiryOnlyMode || (!stripeEnabled && !paypalEnabled);
+  const inquiryOnlyMode = settings.inquiryOnlyMode || !authorizeNetEnabled;
 
   return (
     <section className={cn(spacing.containerPadding, 'mx-auto my-12 max-w-6xl tablet:my-16')}>
@@ -32,8 +34,7 @@ export default async function CheckoutPage() {
           requireAccount={settings.requireAccountForCheckout}
           ordersPaused={settings.ordersPaused}
           inquiryOnlyMode={inquiryOnlyMode}
-          stripeEnabled={stripeEnabled}
-          paypalEnabled={paypalEnabled}
+          authorizeNetEnabled={authorizeNetEnabled}
           supportEmail={settings.supportEmail}
           supportPhone={settings.supportPhone}
           businessHours={settings.businessHours}

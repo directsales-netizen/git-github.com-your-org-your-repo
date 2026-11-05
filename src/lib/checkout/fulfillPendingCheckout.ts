@@ -6,7 +6,7 @@ import { recordCustomerOrder } from '@/lib/admin/customers';
 import { sendOrderConfirmationEmail } from '@/lib/email/resend';
 import { logActivity } from '@/lib/admin/activityLog';
 import { updatePurchaseInquiry } from '@/lib/checkout/inquiries';
-import { assessRisk, type StripeRiskSignals } from '@/lib/fraud/riskEngine';
+import { assessRisk, type AuthorizeNetRiskSignals } from '@/lib/fraud/riskEngine';
 import { countRecentAttempts } from '@/lib/fraud/velocity';
 import { fingerprintCheckout, countRecentDuplicates } from '@/lib/fraud/duplicateDetection';
 import { isIpBlocked, isCardCountryBlocked } from '@/lib/fraud/blocklists';
@@ -56,27 +56,28 @@ export async function runFulfillmentSideEffects(order: FulfillableOrder): Promis
 }
 
 /**
- * Shared by every "payment verified" landing point across both providers:
- * the Stripe webhook (hosted Checkout Session flow used by purchase-inquiry
- * approval emails, and the embedded PaymentIntent flow used by cart
- * checkout — src/app/api/webhooks/stripe/route.ts), the PayPal
- * order-capture route (src/app/api/checkout/paypal/capture/route.ts), and
- * the PayPal webhook (src/app/api/webhooks/paypal/route.ts).
+ * Shared by both "payment verified" landing points: the direct Accept.js
+ * cart-checkout route (src/app/api/checkout/authorizenet/route.ts, which
+ * calls this immediately since createTransactionRequest is synchronous) and
+ * the purchase-inquiry hosted-payment-page flow once that's wired up to call
+ * it from its own confirmation step.
  *
- * `providerReference` is passed explicitly rather than read off `pending`
- * because the id a refund is issued against isn't always known until
- * payment actually completes (a PayPal capture id doesn't exist until the
- * capture call succeeds, even though the Order id was known earlier; a
- * Stripe refund is issued against the PaymentIntent id, not the Checkout
- * Session id). `stripeRisk` is undefined for PayPal — the Orders API has no
- * equivalent AVS/CVC/Radar signal to pass.
+ * `providerReference` (the Authorize.net transaction id) and
+ * `maskedAccountNumber` (last-4-only card, needed for a later refund — see
+ * src/lib/admin/refunds.ts) are passed explicitly rather than read off
+ * `pending` because they only exist once the charge has actually succeeded.
  *
  * The order record is always created — even when held — so it's visible in
  * the Fraud Dashboard's review queue and the admin Orders page. Only the
  * *side effects* (stock, rewards, CRM, confirmation email) are gated on risk
  * level: `extreme` withholds them until an admin approves.
  */
-export async function fulfillPendingCheckout(pending: PendingCheckout, providerReference: string, stripeRisk?: StripeRiskSignals): Promise<void> {
+export async function fulfillPendingCheckout(
+  pending: PendingCheckout,
+  providerReference: string,
+  authorizeNetRisk?: AuthorizeNetRiskSignals,
+  maskedAccountNumber?: string
+): Promise<void> {
   const clientIp = pending.clientIp ?? 'unknown';
   const fingerprint = fingerprintCheckout(pending.email, pending.subtotal, pending.items.map((item) => item.productId));
 
@@ -87,8 +88,12 @@ export async function fulfillPendingCheckout(pending: PendingCheckout, providerR
     velocityByIp: countRecentAttempts(`ip:${clientIp}`, VELOCITY_WINDOW_MS),
     duplicateCount: countRecentDuplicates(fingerprint, DUPLICATE_WINDOW_MS),
     ipBlocked: await isIpBlocked(clientIp),
-    cardCountryBlocked: await isCardCountryBlocked(stripeRisk?.cardCountry),
-    stripe: stripeRisk,
+    // Authorize.net's createTransactionRequest response doesn't expose the
+    // card-issuing country (no Radar-equivalent signal) — the blocklist
+    // stays configurable in admin Settings for when a BIN lookup is added,
+    // but nothing can populate it from this payment rail today.
+    cardCountryBlocked: await isCardCountryBlocked(undefined),
+    authorizeNet: authorizeNetRisk,
   });
 
   const items: OrderItemInput[] = pending.items.map((item) => ({ title: item.title, price: item.price, quantity: item.quantity, productId: item.productId }));
@@ -100,6 +105,7 @@ export async function fulfillPendingCheckout(pending: PendingCheckout, providerR
     items,
     paymentProvider: pending.paymentProvider,
     providerReference,
+    maskedAccountNumber,
     sourceInquiryId: pending.sourceInquiryId,
     reviewStatus: risk.level === 'extreme' ? 'held' : risk.level === 'flagged' ? 'flagged' : 'none',
     riskScore: risk.score,

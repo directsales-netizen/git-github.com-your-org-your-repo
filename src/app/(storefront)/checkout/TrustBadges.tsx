@@ -12,19 +12,15 @@ interface Props {
   supportPhone?: string;
   businessHours?: string;
   inquiryOnlyMode: boolean;
-  stripeEnabled: boolean;
-  paypalEnabled: boolean;
+  authorizeNetEnabled: boolean;
 }
 
 /** Shared trust/security reassurance block, rendered inside the order summary panel. Every claim here is grounded in a real, published policy — no fabricated reviews, urgency, or countdowns. */
-export default function TrustBadges({ supportEmail, supportPhone, businessHours, inquiryOnlyMode, stripeEnabled, paypalEnabled }: Props) {
+export default function TrustBadges({ supportEmail, supportPhone, businessHours, inquiryOnlyMode, authorizeNetEnabled }: Props) {
   const badges = inquiryOnlyMode
     ? [...BADGES, { Icon: BadgeCheck, label: 'Reviewed before payment', href: undefined }]
     : BADGES;
-  const acceptedMethods = [
-    ...(stripeEnabled ? ['Visa', 'Mastercard', 'Amex', 'Discover', 'Apple Pay', 'Google Pay'] : []),
-    ...(paypalEnabled ? ['PayPal'] : []),
-  ];
+  const acceptedMethods = authorizeNetEnabled ? ['Visa', 'Mastercard', 'Amex', 'Discover'] : [];
   return (
     <div className="flex flex-col gap-5 border-t border-neutral-titanium/10 pt-5">
       <div className="grid grid-cols-2 gap-2" aria-label="Purchase protections">

@@ -45,7 +45,7 @@ function hashCode(code: string): string {
 }
 
 /**
- * Fail-open, not fail-closed: mirrors requireStripeConfigured() rather than
+ * Fail-open, not fail-closed: mirrors requireAuthorizeNetConfigured() rather than
  * verifyCredentials(). requireSuperAdminSession() has already authenticated
  * the caller by the time this runs — an unconfigured SMS subsystem should
  * disable this one sub-feature, not brick the entire admin dashboard.

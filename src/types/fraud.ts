@@ -20,7 +20,7 @@ export interface FraudBlocklists {
   blockedCardCountries: string[];
 }
 
-export type DisputeProvider = 'stripe' | 'paypal';
+export type DisputeProvider = 'authorizenet';
 
 export interface DisputeRecord {
   id: string;

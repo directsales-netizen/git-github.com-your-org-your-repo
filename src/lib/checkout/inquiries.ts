@@ -106,7 +106,7 @@ export async function updatePurchaseInquiry(
   patch: Partial<
     Pick<
       PurchaseInquiry,
-      'status' | 'reviewedBy' | 'reviewedAt' | 'rejectionReason' | 'stripeCheckoutSessionId' | 'stripeCheckoutUrl'
+      'status' | 'reviewedBy' | 'reviewedAt' | 'rejectionReason' | 'authorizeNetHostedToken' | 'authorizeNetHostedUrl'
     >
   >
 ): Promise<PurchaseInquiry | null> {

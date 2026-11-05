@@ -17,6 +17,8 @@ export interface OrderRecord extends OrderSummary {
   /** Which payment rail fulfilled this order, and the id a refund is issued against — undefined for the seeded placeholder rows below. */
   paymentProvider?: PaymentProvider;
   providerReference?: string;
+  /** Last-4-only masked card — see AdminOrderSummary.maskedAccountNumber in src/types/admin.ts. */
+  maskedAccountNumber?: string;
   refundedAmount?: number;
   reviewStatus: ReviewStatus;
   riskScore?: number;
@@ -46,6 +48,7 @@ function toAdminSummary(order: OrderRecord): AdminOrderSummary {
     shippingAddress: order.shippingAddress,
     paymentProvider: order.paymentProvider,
     providerReference: order.providerReference,
+    maskedAccountNumber: order.maskedAccountNumber,
     refundedAmount: order.refundedAmount,
     reviewStatus: order.reviewStatus,
     riskScore: order.riskScore,
@@ -113,7 +116,7 @@ const MOCK_ORDERS = globalSingleton('orders', (): OrderRecord[] =>
 
 const nextOrderIdBox = globalBox('nextRealOrderId', () => 48600);
 
-/** Called only from a verified, paid-payment webhook/capture handler (Stripe or PayPal) — never from a client-side redirect. */
+/** Called only after a verified Authorize.net charge actually succeeds — never from a client-side redirect. */
 export async function createOrder(input: {
   email: string;
   name?: string;
@@ -121,6 +124,7 @@ export async function createOrder(input: {
   items: { title: string; price: number; quantity: number; productId: string }[];
   paymentProvider?: PaymentProvider;
   providerReference?: string;
+  maskedAccountNumber?: string;
   reviewStatus?: ReviewStatus;
   riskScore?: number;
   riskLevel?: RiskLevel;
@@ -144,6 +148,7 @@ export async function createOrder(input: {
     estimatedDelivery: estimated.toISOString().slice(0, 10),
     paymentProvider: input.paymentProvider,
     providerReference: input.providerReference,
+    maskedAccountNumber: input.maskedAccountNumber,
     reviewStatus: input.reviewStatus ?? 'none',
     riskScore: input.riskScore,
     riskLevel: input.riskLevel,

@@ -9,7 +9,7 @@ export default async function AdminPurchaseInquiriesPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Purchase Inquiries"
-        description="Customer purchase requests awaiting SuperAdmin review. Approving one issues a real Stripe payment link; rejecting one notifies the customer with a reason."
+        description="Customer purchase requests awaiting SuperAdmin review. Approving one issues a real Authorize.net payment link; rejecting one notifies the customer with a reason."
       />
       <PurchaseInquiriesClient initialInquiries={inquiries} />
     </div>

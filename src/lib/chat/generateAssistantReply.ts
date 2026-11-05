@@ -322,14 +322,15 @@ export async function* generateAssistantReply(
   // unlike the knowledge base below which is cached at module scope.
   const settings = await getBusinessSettings();
   const contactBlock = `Current contact details (use these, never invent different ones): support email ${settings.supportEmail}, phone ${settings.supportPhone}, hours ${settings.businessHours}.`;
-  const paymentMethods = [
-    process.env.STRIPE_SECRET_KEY && process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ? 'card payments through Stripe' : null,
-    process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_CLIENT_SECRET && process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID
-      ? 'PayPal'
-      : null,
-  ].filter((method): method is string => Boolean(method));
+  const authorizeNetEnabled = Boolean(
+    process.env.AUTHORIZENET_API_LOGIN_ID &&
+      process.env.AUTHORIZENET_TRANSACTION_KEY &&
+      process.env.NEXT_PUBLIC_AUTHORIZENET_API_LOGIN_ID &&
+      process.env.NEXT_PUBLIC_AUTHORIZENET_CLIENT_KEY
+  );
+  const paymentMethods = authorizeNetEnabled ? ['card payments through Authorize.net'] : [];
   const paymentBlock = paymentMethods.length
-    ? `Current checkout capabilities: enabled payment methods are ${paymentMethods.join(' and ')}. Do not claim that financing/BNPL or any unlisted method is available.`
+    ? `Current checkout capabilities: enabled payment methods are ${paymentMethods.join(' and ')}. Do not claim that PayPal, financing/BNPL, or any unlisted method is available.`
     : 'Current checkout capabilities: no online payment method is currently enabled. Explain that checkout payment is temporarily unavailable and offer to connect the customer with staff; do not claim PayPal, cards, Link, or financing is available.';
 
   if (!anthropic) {

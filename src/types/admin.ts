@@ -1,7 +1,7 @@
 import type { ChatRole, OrderSummary } from './chat';
 import type { ReviewStatus, RiskLevel } from './fraud';
 
-export type PaymentProvider = 'stripe' | 'paypal';
+export type PaymentProvider = 'authorizenet';
 
 export interface ShippingAddress {
   line1: string;
@@ -23,6 +23,8 @@ export interface AdminOrderSummary extends OrderSummary {
   shippingAddress?: ShippingAddress;
   paymentProvider?: PaymentProvider;
   providerReference?: string;
+  /** Last-4-only masked card (e.g. "XXXX1234") from the Authorize.net charge response — the only card data this app ever stores, and what a refund needs (see issueRefund() in src/lib/admin/refunds.ts). */
+  maskedAccountNumber?: string;
   refundedAmount?: number;
   reviewStatus: ReviewStatus;
   riskScore?: number;
@@ -281,7 +283,8 @@ export interface VisitorRequest {
 }
 
 // --- Purchase Inquiries (inquiryOnlyMode): a customer's cart submission
-// awaiting SuperAdmin approval before a real Stripe payment link is issued.
+// awaiting SuperAdmin approval before a real Authorize.net hosted payment
+// link is issued.
 // See src/lib/checkout/inquiries.ts and src/app/api/admin/purchase-inquiries. ---
 
 export type PurchaseInquiryStatus = 'pending' | 'approved' | 'rejected' | 'converted';
@@ -314,6 +317,6 @@ export interface PurchaseInquiry {
   reviewedBy?: string;
   reviewedAt?: string;
   rejectionReason?: string;
-  stripeCheckoutSessionId?: string;
-  stripeCheckoutUrl?: string;
+  authorizeNetHostedToken?: string;
+  authorizeNetHostedUrl?: string;
 }

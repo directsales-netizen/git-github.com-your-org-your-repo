@@ -64,8 +64,3 @@ export async function findOrCreateVerifiedCustomerAccount(input: {
   ACCOUNTS.push(account);
   return { account, created: true };
 }
-
-export async function setStripeCustomerId(email: string, stripeCustomerId: string): Promise<void> {
-  const account = ACCOUNTS.find((a) => a.email === normalizeEmail(email));
-  if (account) account.stripeCustomerId = stripeCustomerId;
-}

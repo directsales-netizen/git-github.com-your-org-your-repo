@@ -3,8 +3,8 @@ import { requireSuperAdminSessionWithOtp } from '@/lib/admin/getSession';
 import { logActivity } from '@/lib/admin/activityLog';
 import { getPurchaseInquiryById, updatePurchaseInquiry } from '@/lib/checkout/inquiries';
 import { validateCartItems } from '@/lib/checkout/validateCartItems';
-import { requireStripeConfigured } from '@/lib/stripe/client';
-import { findCustomerAccountByEmail, setStripeCustomerId } from '@/lib/customer/store';
+import { requireAuthorizeNetConfigured } from '@/lib/authorizenet/client';
+import { randomUUID } from 'node:crypto';
 import { stashPendingCheckout } from '@/lib/checkout/pendingCheckouts';
 import { sendInquiryApprovedEmail, sendInquiryRejectedEmail } from '@/lib/email/resend';
 
@@ -13,7 +13,7 @@ export const runtime = 'nodejs';
 type ActionBody = { action: 'approve' } | { action: 'reject'; reason: string };
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  // Approval releases a real Stripe payment link — gated to SuperAdmin only,
+  // Approval releases a real Authorize.net payment link — gated to SuperAdmin only,
   // same posture as Settings and Visitor Analytics, not the admin-or-above
   // bar used for ordinary commerce modules like Requests/Orders.
   const { session, response } = await requireSuperAdminSessionWithOtp();
@@ -62,35 +62,20 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ error: validation.error }, { status: 409 });
     }
 
-    const { stripe, response: stripeResponse } = requireStripeConfigured();
-    if (!stripe) return stripeResponse;
+    const configured = requireAuthorizeNetConfigured();
+    if (!configured.ok) return configured.response;
 
     const origin = new URL(request.url).origin;
-    const account = await findCustomerAccountByEmail(inquiry.email);
 
-    let stripeCustomerId = account?.stripeCustomerId;
-    if (!stripeCustomerId) {
-      const customer = await stripe.customers.create({ email: inquiry.email, name: inquiry.name });
-      stripeCustomerId = customer.id;
-      await setStripeCustomerId(inquiry.email, stripeCustomerId);
-    }
+    // `ref` is our own durable, emailable reference — never expires on its
+    // own, unlike an Authorize.net hosted-payment token (~15 minutes). The
+    // actual token is minted fresh, on demand, right when the customer opens
+    // the link (src/app/api/checkout/pay/[ref]/token/route.ts), so a link
+    // that sits in an inbox for hours still works.
+    const ref = randomUUID();
+    const hostedUrl = `${origin}/checkout/pay/${ref}`;
 
-    const lineItems = validation.items.map((item) => ({
-      price_data: { currency: 'usd', unit_amount: Math.round(item.price * 100), product_data: { name: item.title } },
-      quantity: item.quantity,
-    }));
-
-    const stripeSession = await stripe.checkout.sessions.create({
-      mode: 'payment',
-      line_items: lineItems,
-      customer: stripeCustomerId,
-      payment_method_types: ['card', 'paypal', 'cashapp'],
-      payment_intent_data: { setup_future_usage: 'off_session' },
-      success_url: `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/checkout/cancel`,
-    });
-
-    stashPendingCheckout(stripeSession.id, {
+    stashPendingCheckout(ref, {
       email: inquiry.email,
       name: inquiry.name,
       items: validation.items,
@@ -98,18 +83,18 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       subtotal: validation.subtotal,
       createdAt: new Date().toISOString(),
       sourceInquiryId: id,
-      paymentProvider: 'stripe',
+      paymentProvider: 'authorizenet',
     });
 
     const updated = await updatePurchaseInquiry(id, {
       status: 'approved',
-      stripeCheckoutSessionId: stripeSession.id,
-      stripeCheckoutUrl: stripeSession.url ?? undefined,
+      authorizeNetHostedToken: ref,
+      authorizeNetHostedUrl: hostedUrl,
       reviewedBy: session.sub,
       reviewedAt: new Date().toISOString(),
     });
-    await logActivity({ actor: session.sub, action: 'approve', target: `purchase inquiry ${id}`, detail: `stripe session ${stripeSession.id}` });
-    if (stripeSession.url) void sendInquiryApprovedEmail(inquiry.email, inquiry.id, stripeSession.url);
+    await logActivity({ actor: session.sub, action: 'approve', target: `purchase inquiry ${id}`, detail: `authorize.net hosted payment link issued` });
+    void sendInquiryApprovedEmail(inquiry.email, inquiry.id, hostedUrl);
 
     return NextResponse.json(updated);
   }

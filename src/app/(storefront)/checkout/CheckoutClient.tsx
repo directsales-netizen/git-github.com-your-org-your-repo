@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import Link from 'next/link';
 import { useCart } from '@/lib/cart/CartContext';
@@ -11,7 +12,6 @@ import CheckoutFooterTrustBar from './CheckoutFooterTrustBar';
 import ShippingSection from './sections/ShippingSection';
 import BillingSection from './sections/BillingSection';
 import PaymentSection, { type BillingDetails } from './sections/PaymentSection';
-import PayPalSection from './sections/PayPalSection';
 import ReviewSubmitSection from './sections/ReviewSubmitSection';
 import OrderNotesSection from './sections/OrderNotesSection';
 import { emptyAddress, formatAddress, isAddressComplete, type CheckoutAddress } from './checkoutTypes';
@@ -23,8 +23,7 @@ interface Props {
   requireAccount: boolean;
   ordersPaused: boolean;
   inquiryOnlyMode: boolean;
-  stripeEnabled: boolean;
-  paypalEnabled: boolean;
+  authorizeNetEnabled: boolean;
   supportEmail: string;
   supportPhone?: string;
   businessHours?: string;
@@ -45,13 +44,13 @@ export default function CheckoutClient({
   requireAccount,
   ordersPaused,
   inquiryOnlyMode,
-  stripeEnabled,
-  paypalEnabled,
+  authorizeNetEnabled,
   supportEmail,
   supportPhone,
   businessHours,
 }: Props) {
   const { items, subtotal } = useCart();
+  const router = useRouter();
 
   const [activeStep, setActiveStep] = useState<Step>('shipping');
   const [shippingDone, setShippingDone] = useState(false);
@@ -65,9 +64,8 @@ export default function CheckoutClient({
   const [billingAddress, setBillingAddress] = useState<CheckoutAddress>(emptyAddress);
   const [notes, setNotes] = useState('');
 
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
-  const [isLoadingIntent, setIsLoadingIntent] = useState(false);
-  const [intentError, setIntentError] = useState<string | null>(null);
+  const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
 
   const [isSubmittingInquiry, setIsSubmittingInquiry] = useState(false);
   const [inquiryError, setInquiryError] = useState<string | null>(null);
@@ -122,16 +120,17 @@ export default function CheckoutClient({
   const name = isAuthenticated ? prefillName : guestName;
   const isGuestContactComplete = isAuthenticated || (guestName.trim() !== '' && guestEmail.trim() !== '');
 
-  async function handleContinueToPayment() {
+  function handleContinueToPayment() {
     setBillingDone(true);
     setActiveStep('payment');
+  }
 
-    if (inquiryOnlyMode || !stripeEnabled || clientSecret) return;
+  async function handlePaymentSubmit(opaqueData: { dataDescriptor: string; dataValue: string }) {
+    setIsSubmittingPayment(true);
+    setPaymentError(null);
 
-    setIsLoadingIntent(true);
-    setIntentError(null);
     try {
-      const response = await fetch('/api/checkout/session', {
+      const response = await fetch('/api/checkout/authorizenet', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -141,16 +140,19 @@ export default function CheckoutClient({
           shippingAddress: toApiAddress(address),
           notes,
           phone,
+          opaqueData,
         }),
       });
-      const data = (await response.json().catch(() => null)) as { clientSecret?: string; error?: string } | null;
-      if (!response.ok || !data?.clientSecret) {
-        setIntentError(data?.error ?? 'Something went wrong starting checkout.');
+      const data = (await response.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
+      if (!response.ok || !data?.ok) {
+        setPaymentError(data?.error ?? 'Something went wrong processing your payment.');
+        setIsSubmittingPayment(false);
         return;
       }
-      setClientSecret(data.clientSecret);
-    } finally {
-      setIsLoadingIntent(false);
+      router.push('/checkout/success');
+    } catch {
+      setPaymentError('Something went wrong processing your payment. Please try again.');
+      setIsSubmittingPayment(false);
     }
   }
 
@@ -252,7 +254,7 @@ export default function CheckoutClient({
             address={billingAddress}
             onChange={setBillingAddress}
             canContinue={billingSameAsShipping || isAddressComplete(billingAddress)}
-            isSubmitting={isLoadingIntent}
+            isSubmitting={false}
             onContinue={handleContinueToPayment}
           />
         </AccordionSection>
@@ -272,23 +274,13 @@ export default function CheckoutClient({
             </>
           ) : (
             <div className="flex flex-col gap-5">
-              {stripeEnabled && (
+              {authorizeNetEnabled && (
                 <PaymentSection
-                  clientSecret={clientSecret}
-                  isLoading={isLoadingIntent}
-                  error={intentError}
+                  isLoading={isSubmittingPayment}
+                  error={paymentError}
                   billingDetails={billingDetails}
                   totalLabel={currency(subtotal)}
-                />
-              )}
-              {paypalEnabled && (
-                <PayPalSection
-                  items={items.map((item) => ({ productId: item.productId, quantity: item.quantity }))}
-                  shippingAddress={address}
-                  notes={notes}
-                  phone={phone}
-                  guestEmail={isAuthenticated ? undefined : guestEmail}
-                  guestName={isAuthenticated ? undefined : guestName}
+                  onSubmit={handlePaymentSubmit}
                 />
               )}
             </div>
@@ -306,10 +298,9 @@ export default function CheckoutClient({
           supportPhone={supportPhone}
           businessHours={businessHours}
           inquiryOnlyMode={inquiryOnlyMode}
-          stripeEnabled={stripeEnabled}
-          paypalEnabled={paypalEnabled}
+          authorizeNetEnabled={authorizeNetEnabled}
         />
-        <CheckoutFooterTrustBar inquiryOnlyMode={inquiryOnlyMode} stripeEnabled={stripeEnabled} paypalEnabled={paypalEnabled} />
+        <CheckoutFooterTrustBar inquiryOnlyMode={inquiryOnlyMode} authorizeNetEnabled={authorizeNetEnabled} />
       </div>
     </div>
   );

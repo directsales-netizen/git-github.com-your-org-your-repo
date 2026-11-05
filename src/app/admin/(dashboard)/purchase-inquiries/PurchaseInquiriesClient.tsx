@@ -229,15 +229,15 @@ export default function PurchaseInquiriesClient({ initialInquiries }: { initialI
               </div>
             )}
 
-            {detail.stripeCheckoutUrl && (detail.status === 'approved' || detail.status === 'converted') && (
+            {detail.authorizeNetHostedUrl && (detail.status === 'approved' || detail.status === 'converted') && (
               <div>
                 <p className="text-label-md font-body text-neutral-light-gray">Payment link</p>
                 <div className="mt-1 flex items-center gap-2">
-                  <p className="truncate text-body-sm font-body text-accent-primary">{detail.stripeCheckoutUrl}</p>
+                  <p className="truncate text-body-sm font-body text-accent-primary">{detail.authorizeNetHostedUrl}</p>
                   <button
                     type="button"
                     aria-label="Copy payment link"
-                    onClick={() => copyLink(detail.stripeCheckoutUrl!)}
+                    onClick={() => copyLink(detail.authorizeNetHostedUrl!)}
                     className={cn('shrink-0 rounded-md p-1.5 text-neutral-silver hover:text-accent-primary', accessibility.focusRing)}
                   >
                     <Copy size={14} aria-hidden="true" />
@@ -253,7 +253,7 @@ export default function PurchaseInquiriesClient({ initialInquiries }: { initialI
       <ConfirmDialog
         isOpen={approveTarget !== null}
         title="Approve purchase inquiry"
-        message={`Approve ${approveTarget?.id} and issue a Stripe payment link to ${approveTarget?.email}? This action is only reversible by the customer not completing payment.`}
+        message={`Approve ${approveTarget?.id} and issue an Authorize.net payment link to ${approveTarget?.email}? This action is only reversible by the customer not completing payment.`}
         confirmLabel={isSaving ? 'Approving…' : 'Approve'}
         onConfirm={handleApprove}
         onCancel={() => setApproveTarget(null)}

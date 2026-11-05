@@ -2,17 +2,16 @@ import type { RiskAssessment, RiskLevel } from '@/types/fraud';
 import { isDisposableEmail } from './disposableEmail';
 import { isLikelySuspiciousPhone } from './tempPhone';
 
-export interface StripeRiskSignals {
-  /** Charge.outcome.risk_level */
-  riskLevel?: string;
-  /** Charge.outcome.risk_score — only present for accounts with Radar for Fraud Teams; treated as optional. */
-  riskScore?: number;
-  /** Charge.payment_method_details.card.checks.cvc_check */
-  cvcCheck?: string | null;
-  avsLine1Check?: string | null;
-  avsPostalCheck?: string | null;
-  /** Charge.payment_method_details.card.country — used by the caller to compute `cardCountryBlocked` before calling assessRisk(), not read directly here. */
-  cardCountry?: string | null;
+/**
+ * Authorize.net's own AVS/CVV result codes from transactionResponse, per
+ * createTransactionRequest's documented response shape.
+ * avsResultCode: 'Y' full match, 'A'/'W'/'Z' partial match, 'N' no match,
+ * 'U'/'R'/'E'/'S'/'G' unavailable/unsupported.
+ * cvvResultCode: 'M' match, 'N' no match, 'P'/'S'/'U' not processed/unavailable.
+ */
+export interface AuthorizeNetRiskSignals {
+  avsResultCode?: string;
+  cvvResultCode?: string;
 }
 
 export interface RiskInput {
@@ -23,8 +22,7 @@ export interface RiskInput {
   duplicateCount: number;
   ipBlocked: boolean;
   cardCountryBlocked: boolean;
-  /** Undefined for PayPal — the Orders API doesn't expose an equivalent AVS/CVC/Radar-risk signal. */
-  stripe?: StripeRiskSignals;
+  authorizeNet?: AuthorizeNetRiskSignals;
 }
 
 // Tunable thresholds — the entire policy lives in this one file.
@@ -35,12 +33,11 @@ const IP_VELOCITY_THRESHOLD = 5;
 const IP_VELOCITY_EXTREME_THRESHOLD = 8;
 
 /**
- * Composite fraud risk score. Only three things ever hard-trigger `extreme`
- * (fulfillment withheld, admin must Approve/Reject): a blocklisted IP, a
- * blocklisted card-issuing country, or Stripe Radar's own 'highest' verdict.
- * Everything else accumulates points toward `flagged` (fulfills normally,
- * just visible in the review queue) — matches "never automatically reject
- * unless risk is extremely high."
+ * Composite fraud risk score. Only two things ever hard-trigger `extreme`
+ * (fulfillment withheld, admin must Approve/Reject): a blocklisted IP or a
+ * blocklisted card-issuing country. Everything else accumulates points
+ * toward `flagged` (fulfills normally, just visible in the review queue) —
+ * matches "never automatically reject unless risk is extremely high."
  */
 export function assessRisk(input: RiskInput): RiskAssessment {
   const reasons: string[] = [];
@@ -55,29 +52,19 @@ export function assessRisk(input: RiskInput): RiskAssessment {
     hardExtreme = true;
     reasons.push('Card-issuing country is restricted');
   }
-  if (input.stripe?.riskLevel === 'highest') {
-    hardExtreme = true;
-    reasons.push('Stripe Radar flagged this payment as highest risk');
-  } else if (input.stripe?.riskLevel === 'elevated') {
-    score += 25;
-    reasons.push('Stripe Radar flagged this payment as elevated risk');
-  }
-  if (typeof input.stripe?.riskScore === 'number') {
-    score += input.stripe.riskScore * 0.3;
-  }
 
-  if (input.stripe?.cvcCheck === 'fail') {
+  if (input.authorizeNet?.cvvResultCode === 'N') {
     score += 30;
-    reasons.push('CVC check failed');
-  } else if (input.stripe?.cvcCheck === 'unavailable') {
+    reasons.push('CVV check failed');
+  } else if (input.authorizeNet?.cvvResultCode === 'P' || input.authorizeNet?.cvvResultCode === 'S' || input.authorizeNet?.cvvResultCode === 'U') {
     score += 10;
-    reasons.push('CVC check unavailable');
+    reasons.push('CVV check unavailable');
   }
 
-  if (input.stripe?.avsLine1Check === 'fail' || input.stripe?.avsPostalCheck === 'fail') {
+  if (input.authorizeNet?.avsResultCode === 'N') {
     score += 20;
     reasons.push('Address verification (AVS) failed');
-  } else if (input.stripe?.avsLine1Check === 'unavailable' || input.stripe?.avsPostalCheck === 'unavailable') {
+  } else if (input.authorizeNet?.avsResultCode && ['U', 'R', 'E', 'S', 'G'].includes(input.authorizeNet.avsResultCode)) {
     score += 5;
     reasons.push('Address verification (AVS) unavailable');
   }

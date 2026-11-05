@@ -12,8 +12,7 @@ interface Props {
   supportPhone?: string;
   businessHours?: string;
   inquiryOnlyMode: boolean;
-  stripeEnabled: boolean;
-  paypalEnabled: boolean;
+  authorizeNetEnabled: boolean;
 }
 
 const currency = (value: number) => value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
@@ -25,8 +24,7 @@ export default function OrderSummaryPanel({
   supportPhone,
   businessHours,
   inquiryOnlyMode,
-  stripeEnabled,
-  paypalEnabled,
+  authorizeNetEnabled,
 }: Props) {
   return (
     <div className={cn(cardVariants.base, 'flex flex-col gap-5 tablet:sticky tablet:top-24')}>
@@ -90,8 +88,7 @@ export default function OrderSummaryPanel({
         supportPhone={supportPhone}
         businessHours={businessHours}
         inquiryOnlyMode={inquiryOnlyMode}
-        stripeEnabled={stripeEnabled}
-        paypalEnabled={paypalEnabled}
+        authorizeNetEnabled={authorizeNetEnabled}
       />
     </div>
   );
